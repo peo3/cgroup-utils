@@ -13,6 +13,7 @@ parser = optparse.OptionParser()
 parser.add_option('-o', None, action='store', type='string', dest='target_subsystem', default=DEFAULT_SUBSYSTEM, help='Specify a subsystem')
 parser.add_option('-v', '--verbose', action='store_true', dest='verbose', default=False, help='Show detailed messages')
 parser.add_option('-d', '--debug', action='store_true', dest='debug', default=False, help='Show debug messages')
+parser.add_option('-p', '--show-pid', action='store_true', dest='show_pid', default=False, help='Show PID (use with -v)')
 (options, _args) = parser.parse_args()
 if options.debug:
     print options
@@ -167,8 +168,14 @@ class CGroup(object):
 
     def __str__(self):
         meta = self.subsystem.get_content()
-        cmds = sorted([self.get_cmd(pid) for pid in self.pids
-                       if not self.is_kthread(pid)])
+        if options.show_pid:
+            cmds = sorted(["%s(%d)"%(self.get_cmd(pid),pid)
+                           for pid in self.pids
+                           if not self.is_kthread(pid)])
+        else:
+            cmds = sorted([self.get_cmd(pid)
+                           for pid in self.pids
+                           if not self.is_kthread(pid)])
         if options.verbose:
             content = cmds
         else:
