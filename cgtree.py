@@ -122,10 +122,31 @@ class SubsystemMemory(Subsystem):
         sw_usage = int(readfile(self.get_memsw_usage_path())) - mem_usage
         return "%.1fMB/%.1fMB"%(self.to_mb(mem_usage),self.to_mb(sw_usage))
 
+class SubsystemBlkio(Subsystem):
+    def get_bytes_path(self):
+        return os.path.join(self.path, 'blkio.io_service_bytes')
+    def get_total_bytes(self):
+        read = 0
+        write = 0
+        for line in readfile(self.get_bytes_path()).split('\n'):
+            try:
+                (dev,type,bytes) = line.split(' ')
+            except ValueError:
+                # The last line consists of two items; we can ignore it.
+                break
+            if type == 'Read': read += int(bytes)
+            if type == 'Write': write += int(bytes)
+        return (read,write)
+
+    def get_content(self):
+        (read,write) = self.get_total_bytes()
+        return "Read=%.1fMB/Write=%.1fMB"%(self.to_mb(read),self.to_mb(write))
+
 subsystem_name2class = {
     'cpu':SubsystemCpuacct,
     'cpuacct':SubsystemCpuacct,
     'memory':SubsystemMemory,
+    'blkio':SubsystemBlkio,
 }
 
 class CGroup(object):
