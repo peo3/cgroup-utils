@@ -90,11 +90,12 @@ mount_point = target_path
 class Subsystem(object):
     def __init__(self, path):
         self.path = path
-    def get_content(self): pass
+    def get_status(self): return ''
+    def get_global_status(self): return ''
+    def get_legend(self): return ''
 
     def to_sec(self, usec):
         return float(usec)/1000/1000/1000
-
     def to_mb(self, byte):
         return float(byte)/1024/1024
 
@@ -102,7 +103,7 @@ class SubsystemCpuacct(Subsystem):
     def get_usage_path(self):
         return os.path.join(self.path, 'cpuacct.usage')
 
-    def get_content(self):
+    def get_status(self):
         usage = int(readfile(self.get_usage_path()))
         if usage > 60*60*(1000*1000*1000):
             return "%.1fh"%(self.to_sec(usage)/60/60,)
@@ -111,16 +112,57 @@ class SubsystemCpuacct(Subsystem):
         else:
             return "%.1fs"%(self.to_sec(usage),)
 
+    def get_legend(self):
+        return "Consumed CPU time"
+
+class HostMemInfo(dict):
+    def __init__(self):
+        self._update()
+        self._calc()
+
+    def _update(self):
+        r = re.compile('^(?P<key>[\w\(\)]+):\s+(?P<val>\d+)')
+        for line in readfile('/proc/meminfo').split('\n'):
+            m = r.search(line)
+            if m:
+                self[m.group('key')] = int(m.group('val'))*1024
+
+    def _calc(self):
+        self['MemUsed'] = self['MemTotal'] - self['MemFree'] - \
+                          self['Buffers'] - self['Cached']
+        self['SwapUsed'] = self['SwapTotal'] - self['SwapFree'] - \
+                           self['SwapCached']
+        self['MemKernel'] = self['Slab'] + self['KernelStack'] + \
+                            self['PageTables'] + self['VmallocUsed']
+
 class SubsystemMemory(Subsystem):
     def get_usage_path(self):
         return os.path.join(self.path, 'memory.usage_in_bytes')
     def get_memsw_usage_path(self):
         return os.path.join(self.path, 'memory.memsw.usage_in_bytes')
+    def get_stat_path(self):
+        return os.path.join(self.path, 'memory.stat')
+    def get_rss(self):
+        for line in readfile(self.get_stat_path()).split('\n'):
+            (name,val) = line.split(' ')
+            if name == 'rss':
+                return int(val)
 
-    def get_content(self):
+    def get_legend(self):
+        return "TotalUsed, RSS, SwapUsed"
+
+    def get_status(self):
         mem_usage = int(readfile(self.get_usage_path()))
         sw_usage = int(readfile(self.get_memsw_usage_path())) - mem_usage
-        return "%.1fMB/%.1fMB"%(self.to_mb(mem_usage),self.to_mb(sw_usage))
+        rss_usage = self.get_rss()
+        return "%.1fMB, %.1fMB, %.1fMB"% \
+               (self.to_mb(mem_usage),self.to_mb(rss_usage),self.to_mb(sw_usage))
+    def get_global_status(self):
+        meminfo = HostMemInfo()
+        return "Total=%.1fMB, Used(w/o buffer/cache)=%.1fMB, SwapUsed=%.1fMB"% \
+               (self.to_mb(meminfo['MemTotal']),
+                self.to_mb(meminfo['MemUsed']),
+                self.to_mb(meminfo['SwapUsed']))
 
 class SubsystemBlkio(Subsystem):
     def get_bytes_path(self):
@@ -138,15 +180,29 @@ class SubsystemBlkio(Subsystem):
             if type == 'Write': write += int(bytes)
         return (read,write)
 
-    def get_content(self):
+    def get_legend(self):
+        return "Read, Write"
+
+    def get_status(self):
         (read,write) = self.get_total_bytes()
-        return "Read=%.1fMB/Write=%.1fMB"%(self.to_mb(read),self.to_mb(write))
+        return "%.1fMB, %.1fMB"%(self.to_mb(read),self.to_mb(write))
+
+class SubsystemFreezer(Subsystem):
+    def get_state_path(self):
+        return os.path.join(self.path, 'freezer.state')
+    def get_status(self):
+        try:
+            return "%s"%(readfile(self.get_state_path()).strip(),)
+        except IOError:
+            # Root group does not have the file
+            return ''
 
 subsystem_name2class = {
     'cpu':SubsystemCpuacct,
     'cpuacct':SubsystemCpuacct,
     'memory':SubsystemMemory,
     'blkio':SubsystemBlkio,
+    'freezer':SubsystemFreezer,
 }
 
 class CGroup(object):
@@ -188,7 +244,7 @@ class CGroup(object):
         return readfile('/proc/%d/comm'%(pid,))[:-1]
 
     def __str__(self):
-        meta = self.subsystem.get_content()
+        status = self.subsystem.get_status()
         if options.show_pid:
             cmds = sorted(["%s(%d)"%(self.get_cmd(pid),pid)
                            for pid in self.pids
@@ -198,10 +254,10 @@ class CGroup(object):
                            for pid in self.pids
                            if not self.is_kthread(pid)])
         if options.verbose:
-            content = cmds
+            procs = cmds
         else:
-            content = '%d procs'%(len(cmds),)
-        return "%s%s: %s (%s)"%('  '*self.depth, self.name, content, meta)
+            procs = '%d procs'%(len(cmds),)
+        return "%s%s: %s (%s)"%('  '*self.depth, self.name, procs, status)
 
 #
 # Main
@@ -229,4 +285,8 @@ def print_cgroups_recursively(cgroup):
     for child in cgroup.childs:
         print_cgroups_recursively(child)
 
+global_status = cgroups.subsystem.get_global_status()
+if global_status != '':
+    print('# '+global_status)
+print('# Legend: # of procs ('+cgroups.subsystem.get_legend()+')')
 print_cgroups_recursively(cgroups)
