@@ -85,6 +85,38 @@ target_path = subsystem2path[options.target_subsystem]
 mount_point = target_path
 
 #
+# Utility functions
+#
+USEC=1000*1000*1000
+D=60*60*24
+H=60*60
+M=60
+def usec2str(sec):
+    sec = float(sec)/USEC
+    if sec > D:
+        return "%.1fd"%(sec/D,)
+    if sec > H:
+        return "%.1fh"%(sec/H,)
+    elif sec > M:
+        return "%.1fm"%(sec/M,)
+    else:
+        return "%.1fs"%(sec,)
+
+GB=1024*1024*1024
+MB=1024*1024
+KB=1024
+def byte2str(byte):
+    byte = float(byte)
+    if byte > GB:
+        return "%.1fGB"%(byte/GB,)
+    elif byte > MB:
+        return "%.1fMB"%(byte/MB,)
+    elif byte > KB:
+        return "%.1fKB"%(byte/KB,)
+    else:
+        return "%.1fB"%(byte,)
+
+#
 # Sussystems and Cgroup classes
 #
 class Subsystem(object):
@@ -94,10 +126,6 @@ class Subsystem(object):
     def get_global_status(self): return ''
     def get_legend(self): return ''
 
-    def to_sec(self, usec):
-        return float(usec)/1000/1000/1000
-    def to_mb(self, byte):
-        return float(byte)/1024/1024
 
 class SubsystemCpuacct(Subsystem):
     def get_usage_path(self):
@@ -105,12 +133,8 @@ class SubsystemCpuacct(Subsystem):
 
     def get_status(self):
         usage = int(readfile(self.get_usage_path()))
-        if usage > 60*60*(1000*1000*1000):
-            return "%.1fh"%(self.to_sec(usage)/60/60,)
-        if usage > 60*(1000*1000*1000):
-            return "%.1fm"%(self.to_sec(usage)/60,)
-        else:
-            return "%.1fs"%(self.to_sec(usage),)
+        s = usec2str(usage)
+        return s.rjust(6)
 
     def get_legend(self):
         return "Consumed CPU time"
@@ -155,14 +179,15 @@ class SubsystemMemory(Subsystem):
         mem_usage = int(readfile(self.get_usage_path()))
         sw_usage = int(readfile(self.get_memsw_usage_path())) - mem_usage
         rss_usage = self.get_rss()
-        return "%.1fMB, %.1fMB, %.1fMB"% \
-               (self.to_mb(mem_usage),self.to_mb(rss_usage),self.to_mb(sw_usage))
+        vals = [mem_usage,rss_usage,sw_usage]
+        return ','.join([byte2str(val).rjust(8) for val in vals])
+
     def get_global_status(self):
         meminfo = HostMemInfo()
-        return "Total=%.1fMB, Used(w/o buffer/cache)=%.1fMB, SwapUsed=%.1fMB"% \
-               (self.to_mb(meminfo['MemTotal']),
-                self.to_mb(meminfo['MemUsed']),
-                self.to_mb(meminfo['SwapUsed']))
+        return "Total=%s, Used(w/o buffer/cache)=%s, SwapUsed=%s"% \
+               (byte2str(meminfo['MemTotal']),
+                byte2str(meminfo['MemUsed']),
+                byte2str(meminfo['SwapUsed']))
 
 class SubsystemBlkio(Subsystem):
     def get_bytes_path(self):
@@ -185,7 +210,8 @@ class SubsystemBlkio(Subsystem):
 
     def get_status(self):
         (read,write) = self.get_total_bytes()
-        return "%.1fMB, %.1fMB"%(self.to_mb(read),self.to_mb(write))
+        vals = [read,write]
+        return ','.join([byte2str(val).rjust(8) for val in vals])
 
 class SubsystemFreezer(Subsystem):
     def get_state_path(self):
@@ -255,9 +281,19 @@ class CGroup(object):
                            if not self.is_kthread(pid)])
         if options.verbose:
             procs = cmds
+            return "%s%s: %s"%('  '*self.depth, self.name, cmds)
         else:
-            procs = '%d procs'%(len(cmds),)
-        return "%s%s: %s (%s)"%('  '*self.depth, self.name, procs, status)
+            procs = ('%d procs'%(len(cmds),)).rjust(10)
+            proc_indent = 12
+            status_indent = 24
+            s = "%s%s:"%('  '*self.depth, self.name)
+            indent = proc_indent-len(s)
+            if indent < 0: indent = 0
+            s = "%s%s%s"%(s,' '*indent, procs)
+            indent = status_indent-len(s)
+            if indent < 0: indent = 0
+            s = "%s%s(%s)"%(s,' '*indent, status)
+            return s
 
 #
 # Main
