@@ -112,9 +112,9 @@ def byte2str(byte):
     elif byte > MB:
         return "%.1fMB"%(byte/MB,)
     elif byte > KB:
-        return "%.1fKB"%(byte/KB,)
+        return "%.1fkB"%(byte/KB,)
     else:
-        return "%.1fB"%(byte,)
+        return "%.1f B"%(byte,)
 
 #
 # Sussystems and Cgroup classes
