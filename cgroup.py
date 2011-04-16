@@ -140,14 +140,6 @@ class SubsystemCpuacct(Subsystem):
                 'system': int(system.split(' ')[1]),
                 'usage': usage}
 
-    def get_status(self):
-        usage = self.get_usages()['usage']
-        s = usec2str(usage)
-        return s.rjust(6)
-
-    def get_legend(self):
-        return "Consumed CPU time"
-
 class HostMemInfo(dict):
     _p = re.compile('^(?P<key>[\w\(\)]+):\s+(?P<val>\d+)')
     def _update(self):
@@ -181,27 +173,12 @@ class SubsystemMemory(Subsystem):
         cont = readfile(self.path_stat)
         return int(self._p.search(cont).group('val'))
 
-    def get_legend(self):
-        return "TotalUsed, RSS, SwapUsed"
-
     def get_usages(self):
         usages = {}
         usages['total'] = int(readfile(self.path_usage))
         usages['swap']  = int(readfile(self.path_memsw_usage)) - usages['total']
         usages['rss']   = self.get_rss()
         return usages
-
-    def get_status(self):
-        usages = self.get_usages()
-        vals = [usages['total'],usages['rss'],usages['swap']]
-        return ','.join([byte2str(val).rjust(8) for val in vals])
-
-    def get_global_status(self):
-        meminfo = self.meminfo.update()
-        return "Total=%s, Used(w/o buffer/cache)=%s, SwapUsed=%s"% \
-               (byte2str(meminfo['MemTotal']),
-                byte2str(meminfo['MemUsed']),
-                byte2str(meminfo['SwapUsed']))
 
 class SubsystemBlkio(Subsystem):
     def __init__(self, path):
@@ -220,25 +197,18 @@ class SubsystemBlkio(Subsystem):
             if type == 'Write': usages['write'] += int(bytes)
         return usages
 
-    def get_legend(self):
-        return "Read, Write"
-
-    def get_status(self):
-        usages = self.get_usages()
-        vals = [usages['read'],usages['write']]
-        return ','.join([byte2str(val).rjust(8) for val in vals])
-
 class SubsystemFreezer(Subsystem):
     def __init__(self, path):
         self.path = path
         self.path_state = os.path.join(self.path, 'freezer.state')
 
-    def get_status(self):
+    def get_usages(self):
+        # XXX
         try:
-            return "%s"%(readfile(self.path_state).strip(),)
+            return {'state': "%s"%(readfile(self.path_state).strip(),),}
         except IOError:
             # Root group does not have the file
-            return ''
+            return {'state': ''}
 
 subsystem_name2class = {
     'cpu':SubsystemCpuacct,
@@ -285,7 +255,7 @@ class CGroup(object):
 
         self.__update_usages()
 
-    def _update_pids(self):
+    def update_pids(self):
         pids = readfile(self.path_procs).split('\n')[:-1]
         self.pids = [int(pid) for pid in pids]
 
@@ -313,32 +283,6 @@ class CGroup(object):
 
     def get_cmd(self, pid):
         return readfile('/proc/%d/comm'%(pid,))[:-1]
-
-    def __str__(self):
-        status = self.subsystem.get_status()
-        if self.options.show_pid:
-            cmds = sorted(["%s(%d)"%(self.get_cmd(pid),pid)
-                           for pid in self.pids
-                           if not self.is_kthread(pid)])
-        else:
-            cmds = sorted([self.get_cmd(pid)
-                           for pid in self.pids
-                           if not self.is_kthread(pid)])
-        if self.options.verbose:
-            procs = cmds
-            return "%s%s: %s"%('  '*self.depth, self.name, cmds)
-        else:
-            procs = ('%d procs'%(len(cmds),)).rjust(10)
-            proc_indent = 12
-            status_indent = 24
-            s = "%s%s:"%('  '*self.depth, self.name)
-            indent = proc_indent-len(s)
-            if indent < 0: indent = 0
-            s = "%s%s%s"%(s,' '*indent, procs)
-            indent = status_indent-len(s)
-            if indent < 0: indent = 0
-            s = "%s%s(%s)"%(s,' '*indent, status)
-            return s
 
 def scan_directory_recursively(subsystem, options, abspath, mount_point):
     #if options.debug:

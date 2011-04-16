@@ -34,6 +34,8 @@ def usec2str(sec):
     else:
         return "%.1fs"%(sec,)
 
+max_width_time = len('NNN.N_')
+
 def percent2str(per):
     #return "%.1f %%"%(per,)
     #return "%.1f"%(per,)
