@@ -1,22 +1,5 @@
-cgtree is a command line tool to show cgroup hierarchy, like tree command, on your Linux box.
+cgtree and cgtop are tools which show statistics of control groups on your Linux box.
 
-Installation
+License
 
- $ sudo cp cgtree.py /usr/local/bin/cgtree
- $ sudo chmod +x /usr/local/bin/cgtree
-
-Usage
-
- $ cgtree
- <root>: 84 procs (47.3h)
-   x: 15 procs (18.3m)
-   ime: 1 procs (1.1s)
-   user: 0 procs (7.7s)
-     21352: 3 procs (7.5s)
-     21339: 2 procs (0.2s)
-   browser: 2 procs (1.5h)
- $ cgtree -o memory
- <root>: 105 procs (928.3MB/13.9MB)
-   browser: 2 procs (308.5MB/0.0MB)
-
-cgtree -h for complete options.
+These tools are licensed under GPLv2. See COPYING for more detail.
