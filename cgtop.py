@@ -409,7 +409,7 @@ def run_cgtop_window(win, options):
     SUBSYSTEMS = ['cpu', 'memory', 'blkio']
     for subsys_name in SUBSYSTEMS:
         mount_point = cgroup.subsystem2path[subsys_name]
-        root_cgroup = cgroup.scan_directory_recursively(subsys_name, options, mount_point, mount_point)
+        root_cgroup = cgroup.scan_directory_recursively(subsys_name, mount_point, mount_point)
         cgroup.walk_cgroups(root_cgroup, collect_cgroups_by_name, cgroups)
 
     ui = CGTopUI(win, cgroups, options)

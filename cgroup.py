@@ -63,11 +63,7 @@ for line in lines:
         enabled = True
     else:
         enabled = False
-    #if options.debug:
-    #    print(name, hierarchy, n_cgroups, enabled)
     subsystem_names.append(name)
-#if options.debug:
-#    print(subsystem_names)
 
 #
 # Get path of enabled subsystems
@@ -90,15 +86,6 @@ for line in lines:
     for opt in opts:
         if opt in subsystem_names:
             subsystem2path[opt] = path
-#if options.debug:
-#    print(subsystem2path)
-
-#if options.target_subsystem not in subsystem2path:
-#    print('No such subsystem: %s'%(options.target_subsystem,))
-#    sys.exit(1)
-#target_path = subsystem2path[options.target_subsystem]
-#target_path = subsystem2path[options.target_subsystem]
-#mount_point = target_path
 
 #
 # Sussystems and Cgroup classes
@@ -329,7 +316,7 @@ class CGroup(object):
             else: return rec(rest) + 1
         return rec(path)
 
-    def __init__(self, mount_point, relpath, subsystem, options):
+    def __init__(self, mount_point, relpath, subsystem):
         self.mount_point = mount_point
         self.relpath = relpath
         self.abspath = os.path.normpath(self.mount_point+relpath)
@@ -344,12 +331,8 @@ class CGroup(object):
             self.fullname = self.relpath[1:]
         self.path_procs = os.path.join(self.abspath,'cgroup.procs')
         self.subsystem = subsystem
-        self.options = options
 
         self.childs = []
-        #if self.options.debug:
-        #    print([self.name, self.depth, self.relpath,
-        #           self.abspath, self.pids])
 
         self.__update_usages()
         self._update_n_procs()
@@ -401,19 +384,16 @@ class CGroup(object):
     def get_cmd(self, pid):
         return readfile('/proc/%d/comm'%(pid,))[:-1]
 
-def scan_directory_recursively(subsystem, options, abspath, mount_point):
-    #if options.debug:
-    #    print('Scanning: '+abspath)
+def scan_directory_recursively(subsystem, abspath, mount_point):
     relpath = abspath.replace(mount_point, '')
     cgroup = CGroup(mount_point, relpath,
-                    subsystem_name2class[subsystem](abspath),
-                    options)
+                    subsystem_name2class[subsystem](abspath))
 
     _childs = []
     for _file in os.listdir(abspath):
         child_abspath = os.path.join(abspath,_file)
         if os.path.isdir(child_abspath):
-            child = scan_directory_recursively(subsystem, options, child_abspath, mount_point)
+            child = scan_directory_recursively(subsystem, child_abspath, mount_point)
             _childs.append(child)
     cgroup.childs.extend(_childs)
     return cgroup

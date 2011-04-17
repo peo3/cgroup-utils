@@ -42,7 +42,7 @@ def main():
     mount_point = target_path
 
     root_cgroup = cgroup.scan_directory_recursively(
-                      options.target_subsystem, options,
+                      options.target_subsystem,
                       mount_point, mount_point)
 
     def print_cgroups_recursively(_cgroup):
