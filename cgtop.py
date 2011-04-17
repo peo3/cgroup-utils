@@ -192,7 +192,7 @@ class CGTopUI:
             proc_exists = False
             for _cgroup in cgroup_list:
                 subsys_name = cgroup.subsystem_class2name[_cgroup.subsystem.__class__]
-                if subsys_name == 'cpuacct':
+                if subsys_name == 'cpu':
                     cpu = _cgroup
                 elif subsys_name == 'memory':
                     mem = _cgroup
@@ -406,7 +406,7 @@ def run_cgtop_window(win, options):
         _cgroups[_cgroup.name].append(_cgroup)
     
     cgroups = {}
-    SUBSYSTEMS = ['cpuacct', 'memory', 'blkio']
+    SUBSYSTEMS = ['cpu', 'memory', 'blkio']
     for subsys_name in SUBSYSTEMS:
         mount_point = cgroup.subsystem2path[subsys_name]
         root_cgroup = cgroup.scan_directory_recursively(subsys_name, options, mount_point, mount_point)

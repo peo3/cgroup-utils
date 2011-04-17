@@ -127,11 +127,22 @@ class HostCPUInfo():
     def get_total_usage_delta(self):
         return self.total_usage - self._total_usage_prev
 
-class SubsystemCpuacct(Subsystem):
+class SubsystemCpu(Subsystem):
     def __init__(self, path):
         self.path = path
+        self.path_shares = os.path.join(self.path, 'cpu.shares')
         self.path_usage = os.path.join(self.path, 'cpuacct.usage')
         self.path_stat  = os.path.join(self.path, 'cpuacct.stat')
+
+    def get_configs(self):
+        configs = {}
+        configs['cpu.shares'] = int(readfile(self.path_shares))
+        return configs
+
+    def get_default_configs(self):
+        configs = {}
+        configs['cpu.shares'] = 1024
+        return configs
 
     def get_usages(self):
         usage = int(readfile(self.path_usage))
@@ -139,6 +150,8 @@ class SubsystemCpuacct(Subsystem):
         return {'user': int(user.split(' ')[1]),
                 'system': int(system.split(' ')[1]),
                 'usage': usage}
+
+SubsystemCpuacct = SubsystemCpu
 
 class HostMemInfo(dict):
     _p = re.compile('^(?P<key>[\w\(\)]+):\s+(?P<val>\d+)')
@@ -161,12 +174,43 @@ class HostMemInfo(dict):
 
 class SubsystemMemory(Subsystem):
     _p = re.compile('rss (?P<val>\d+)')
+    CONFIGS = [
+        'limit_in_bytes',
+        'memsw.limit_in_bytes',
+        'move_charge_at_immigrate',
+        'oom_control',
+        'soft_limit_in_bytes',
+        'swappiness',
+        'use_hierarchy',
+        ]
+    STATS = [
+        'usage_in_bytes',
+        'memsw.usage_in_bytes',
+        'stat',
+        'memsw.failcnt',
+        ]
+    MAX_ULONGLONG = 2**63-1
+    _DEFAULTS = {
+        'limit_in_bytes': MAX_ULONGLONG,
+        'memsw.limit_in_bytes': MAX_ULONGLONG,
+        'move_charge_at_immigrate': 0L,
+        'oom_control.oom_kill_disable': 0L,
+        'oom_control.under_oom': 0L,
+        'soft_limit_in_bytes': MAX_ULONGLONG,
+        'swappiness': 60L,
+        'use_hierarchy': 0L,
+        }
+    DEFAULTS = {}
+    for name, val in _DEFAULTS.iteritems():
+        DEFAULTS['memory.'+name] = val
     def __init__(self, path):
         self.path = path
-        self.path_usage = os.path.join(self.path, 'memory.usage_in_bytes')
-        self.path_memsw_usage = os.path.join(self.path, 'memory.memsw.usage_in_bytes')
-        self.path_stat = os.path.join(self.path, 'memory.stat')
-
+        self.param2path = {}
+        for param in self.CONFIGS+self.STATS:
+            attrname = 'path_'+param.replace('.', '_')
+            _path = os.path.join(self.path, 'memory.'+param)
+            setattr(self, attrname, _path)
+            self.param2path[param] = _path
         self.meminfo = HostMemInfo()
 
     def get_rss(self):
@@ -175,15 +219,57 @@ class SubsystemMemory(Subsystem):
 
     def get_usages(self):
         usages = {}
-        usages['total'] = int(readfile(self.path_usage))
-        usages['swap']  = int(readfile(self.path_memsw_usage)) - usages['total']
+        usages['total'] = int(readfile(self.path_usage_in_bytes))
+        usages['swap']  = int(readfile(self.path_memsw_usage_in_bytes)) - usages['total']
         usages['rss']   = self.get_rss()
         return usages
 
+    def get_configs(self):
+        configs = {}
+        for config in self.CONFIGS:
+            if config == 'oom_control':
+                lines = readfile(self.param2path[config]).split('\n')
+                name, val = lines[0].split(' ')
+                configs['memory.'+config+'.'+name] = long(val)
+                name, val = lines[1].split(' ')
+                configs['memory.'+config+'.'+name] = long(val)
+                
+            else:
+                configs['memory.'+config] = long(readfile(self.param2path[config]))
+        return configs
+
+    def get_default_configs(self):
+        return self.DEFAULTS.copy()
+
 class SubsystemBlkio(Subsystem):
+    CONFIGS = [
+        'weight',
+        'weight_device',
+        'throttle.read_iops_device',
+        'throttle.write_iops_device',
+        'throttle.read_bps_device',
+        'throttle.write_bps_device',
+        ]
+    _DEFAULTS = {
+        'weight': 1000,
+        'weight_device': '',
+        'throttle.read_iops_device': '',
+        'throttle.write_iops_device': '',
+        'throttle.read_bps_device': '',
+        'throttle.write_bps_device': '',
+        }
+    DEFAULTS = {}
+    for name, val in _DEFAULTS.iteritems():
+        DEFAULTS['blkio.'+name] = val
     def __init__(self, path):
         self.path = path
         self.path_io_service = os.path.join(self.path, 'blkio.io_service_bytes')
+        self.param2path = {}
+        for param in self.CONFIGS:
+            attrname = 'path_'+param.replace('.', '_')
+            _path = os.path.join(self.path, 'blkio.'+param)
+            setattr(self, attrname, _path)
+            self.param2path[param] = _path
 
     def get_usages(self):
         usages = {'read':0, 'write':0}
@@ -196,6 +282,20 @@ class SubsystemBlkio(Subsystem):
             if type == 'Read':  usages['read'] += int(bytes)
             if type == 'Write': usages['write'] += int(bytes)
         return usages
+
+    def get_configs(self):
+        configs = {}
+        for config in self.CONFIGS:
+            if '_device' in config:
+                cont = readfile(self.param2path[config])
+                cont = cont.strip().replace('\n', ', ').replace('\t', ' ')
+                configs['blkio.'+config] = cont
+            else:
+                configs['blkio.'+config] = int(readfile(self.param2path[config]))
+        return configs
+
+    def get_default_configs(self):
+        return self.DEFAULTS.copy()
 
 class SubsystemFreezer(Subsystem):
     def __init__(self, path):
@@ -211,7 +311,7 @@ class SubsystemFreezer(Subsystem):
             return {'state': ''}
 
 subsystem_name2class = {
-    'cpu':SubsystemCpuacct,
+    'cpu':SubsystemCpu,
     'cpuacct':SubsystemCpuacct,
     'memory':SubsystemMemory,
     'blkio':SubsystemBlkio,
@@ -220,8 +320,6 @@ subsystem_name2class = {
 subsystem_class2name = {}
 for name, _class in subsystem_name2class.iteritems():
     subsystem_class2name[_class] = name
-# XXX
-subsystem_class2name[SubsystemCpuacct] = 'cpuacct'
 
 class CGroup(object):
     def calc_depth(self, path):
@@ -254,6 +352,11 @@ class CGroup(object):
         #           self.abspath, self.pids])
 
         self.__update_usages()
+        self._update_n_procs()
+
+        self.path_release_agent = os.path.join(self.abspath, 'release_agent')
+        self.path_notify_on_release = os.path.join(self.abspath, 'notify_on_release')
+
 
     def update_pids(self):
         pids = readfile(self.path_procs).split('\n')[:-1]
@@ -276,6 +379,20 @@ class CGroup(object):
     def update(self):
         self._update_n_procs()
         self._update_usages()
+
+    def get_configs(self):
+        configs = self.subsystem.get_configs()
+        if os.path.exists(self.path_release_agent):
+            configs['release_agent'] = readfile(self.path_release_agent).strip()
+        configs['notify_on_release'] = int(readfile(self.path_notify_on_release))
+        return configs
+
+    def get_default_configs(self):
+        configs = self.subsystem.get_default_configs()
+        if os.path.exists(self.path_release_agent):
+            configs['release_agent'] = ''
+        configs['notify_on_release'] = 0
+        return configs
 
     def is_kthread(self, pid):
         #return 'VmStk' not in readfile('/proc/%d/status'%(pid,))

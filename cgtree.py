@@ -77,8 +77,8 @@ get_global_status = {
     'freezer':lambda: None,
     }
 
-def print_cgroup(subsys, _cgroup, show_pid, verbose):
-    status = formatters[subsys](_cgroup.usages)
+def print_cgroup(subsys_name, _cgroup, show_pid, verbose):
+    status = formatters[subsys_name](_cgroup.usages)
 
     _cgroup.update_pids()
     if show_pid:
