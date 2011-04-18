@@ -297,6 +297,12 @@ class SubsystemFreezer(Subsystem):
             # Root group does not have the file
             return {'state': ''}
 
+    def get_configs(self):
+        return {}
+
+    def get_default_configs(self):
+        return {}
+
 subsystem_name2class = {
     'cpu':SubsystemCpu,
     'cpuacct':SubsystemCpuacct,
