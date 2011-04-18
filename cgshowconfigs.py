@@ -5,7 +5,7 @@ import optparse
 import cgroup
 import formatter
 
-def print_configs(subsys_name, _cgroup, show_default):
+def print_configs(_cgroup, show_default):
     configs = _cgroup.get_configs()
     defaults = _cgroup.get_default_configs()
     for name, val in configs.iteritems():
@@ -60,7 +60,7 @@ def main():
             pass
         else:
             print(_cgroup.fullname)
-            print_configs(options.target_subsystem, _cgroup, options.show_default)
+            print_configs(_cgroup, options.show_default)
         for child in _cgroup.childs:
             print_cgroups_recursively(child)
     print_cgroups_recursively(root_cgroup)
