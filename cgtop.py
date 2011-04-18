@@ -443,8 +443,8 @@ def main():
     parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
                       help='delay between iterations [1 second]',
                       metavar='SEC', default=1)
-    parser.add_option('', '--debug', action='store_true', dest='debug', default=False,
-                      help='Show debug messages')
+    parser.add_option('--debug', action='store_true', dest='debug',
+                      default=False, help='Show debug messages')
 
     options, args = parser.parse_args()
     if args:
