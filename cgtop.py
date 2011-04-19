@@ -33,7 +33,7 @@ import cgroup
 import formatter
 
 class CGTopStats:
-    SUBSYSTEMS = ['cpu', 'blkio', 'memory']
+    SUBSYSTEMS = ['cpuacct', 'blkio', 'memory']
 
     def __init__(self, options):
         self.options = options
@@ -45,6 +45,8 @@ class CGTopStats:
     
         cgroups = {}
         for name in self.SUBSYSTEMS:
+            if name not in cgroup.subsystem2path:
+                continue
             mount_point = cgroup.subsystem2path[name]
             root_cgroup = cgroup.scan_directory_recursively(name, mount_point, mount_point)
             cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
@@ -63,7 +65,7 @@ class CGTopStats:
             proc_exists = False
             for _cgroup in cgroup_list:
                 subsys_name = cgroup.subsystem_class2name[_cgroup.subsystem.__class__]
-                if subsys_name == 'cpu':
+                if subsys_name == 'cpuacct':
                     cpu = _cgroup
                 elif subsys_name == 'memory':
                     mem = _cgroup
@@ -273,7 +275,7 @@ class CGTopUI:
         item_sep_size   = 1
         self.ITEM_SEP   = ' '*item_sep_size
         self.ITEM_WIDTHS = {
-            'cpu':       formatter.max_width_cpu,
+            'cpuacct':   formatter.max_width_cpu,
             'blkio':     formatter.max_width_blkio,
             'memory':    formatter.max_width_memory,
             'cpu.user':  formatter.max_width_cpu,
@@ -285,7 +287,7 @@ class CGTopUI:
             'mem.swap':  formatter.max_width_memory,
             'n_procs':   3,
             'name':      0}
-        self.N_ITEMS = {'cpu': 2, 'blkio': 2,
+        self.N_ITEMS = {'cpuacct':2, 'blkio': 2,
                         'memory': 3, 'n_procs': 1, 'name': 1}
 
     def _init_subsys_title(self):

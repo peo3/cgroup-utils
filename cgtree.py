@@ -29,12 +29,15 @@ import cgroup
 import formatter
 
 legends = {
+    'cpu':    "",
     'cpuacct':"Consumed CPU time",
-    'cpu':    "Consumed CPU time",
     'memory': "TotalUsed, RSS, SwapUsed",
     'blkio':  "Read, Write",
     'freezer':"State",
     }
+
+def format_cpu(usages):
+    return ''
 
 def format_cpuacct(usages):
     n = formatter.max_width_time
@@ -54,8 +57,8 @@ def format_freezer(usages):
     return usages['state']
 
 formatters = {
+    'cpu':    format_cpu,
     'cpuacct':format_cpuacct,
-    'cpu':    format_cpuacct,
     'memory': format_memory,
     'blkio':  format_blkio,
     'freezer':format_freezer,

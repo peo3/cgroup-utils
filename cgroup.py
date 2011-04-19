@@ -118,8 +118,6 @@ class SubsystemCpu(Subsystem):
     def __init__(self, path):
         self.path = path
         self.path_shares = os.path.join(self.path, 'cpu.shares')
-        self.path_usage = os.path.join(self.path, 'cpuacct.usage')
-        self.path_stat  = os.path.join(self.path, 'cpuacct.stat')
 
     def get_configs(self):
         configs = {}
@@ -132,13 +130,26 @@ class SubsystemCpu(Subsystem):
         return configs
 
     def get_usages(self):
+        return {}
+
+class SubsystemCpuacct(Subsystem):
+    def __init__(self, path):
+        self.path = path
+        self.path_usage = os.path.join(self.path, 'cpuacct.usage')
+        self.path_stat  = os.path.join(self.path, 'cpuacct.stat')
+
+    def get_configs(self):
+        return {}
+
+    def get_default_configs(self):
+        return {}
+
+    def get_usages(self):
         usage = int(readfile(self.path_usage))
         user, system = readfile(self.path_stat).split('\n')[:2]
         return {'user': int(user.split(' ')[1]),
                 'system': int(system.split(' ')[1]),
                 'usage': usage}
-
-SubsystemCpuacct = SubsystemCpu
 
 class HostMemInfo(dict):
     _p = re.compile('^(?P<key>[\w\(\)]+):\s+(?P<val>\d+)')
