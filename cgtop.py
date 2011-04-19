@@ -32,6 +32,112 @@ import errno
 import cgroup
 import formatter
 
+class CGTopStats:
+    SUBSYSTEMS = ['cpu', 'blkio', 'memory']
+
+    def __init__(self, options):
+        self.options = options
+
+        def collect_by_name(cg, store):
+            if cg.name not in store:
+                store[cg.name] = []
+            store[cg.name].append(cg)
+    
+        cgroups = {}
+        for name in self.SUBSYSTEMS:
+            mount_point = cgroup.subsystem2path[name]
+            root_cgroup = cgroup.scan_directory_recursively(name, mount_point, mount_point)
+            cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
+        self.cgroups = cgroups
+
+        self.hostcpuinfo = cgroup.HostCPUInfo()
+        self.last_time   = time.time()
+
+        self.cpu_delta = 0
+        self.time_delta = 0
+
+    def get_cgroup_stats(self):
+        cgroup_stats = []
+        for name, cgroup_list in self.cgroups.iteritems():
+            cpu = mem = bio = None
+            proc_exists = False
+            for _cgroup in cgroup_list:
+                subsys_name = cgroup.subsystem_class2name[_cgroup.subsystem.__class__]
+                if subsys_name == 'cpu':
+                    cpu = _cgroup
+                elif subsys_name == 'memory':
+                    mem = _cgroup
+                elif subsys_name == 'blkio':
+                    bio = _cgroup
+                else: pass
+                if _cgroup.n_procs > 0:
+                    proc_exists = True
+            if self.options.hide_empty and not proc_exists:
+                continue
+            
+            active = False
+            stats = {}
+            stats['name'] = _cgroup.fullname
+            stats['n_procs'] = _cgroup.n_procs
+            stats['cpu.user'] = 0.0
+            stats['cpu.system'] = 0.0
+            stats['bio.read']  = 0.0
+            stats['bio.write'] = 0.0
+            stats['mem.total'] = 0
+            stats['mem.rss']   = 0
+            stats['mem.swap']  = 0
+
+            if cpu:
+                def percent(delta):
+                    return float(delta)*100/self.cpu_delta
+                    
+                if self.cpu_delta != 0:
+                    stats['cpu.user']   = percent(cpu.usages_delta['user'])
+                    stats['cpu.system'] = percent(cpu.usages_delta['system'])
+                if (stats['cpu.user']+stats['cpu.system']) > 0.0:
+                    active = True
+
+            if bio:
+                def byps(delta):
+                    return float(delta)/self.time_delta
+                bio_stats = bio.usages_delta
+                stats['bio.read']  = byps(bio_stats['read'])
+                stats['bio.write'] = byps(bio_stats['write'])
+                if (stats['bio.read']+stats['bio.write']) > 0.0:
+                    active = True
+
+            if mem:
+                mem_stats = mem.usages_delta
+                stats['mem.total'] = mem_stats['total']
+                stats['mem.rss']   = mem_stats['rss']
+                stats['mem.swap']  = mem_stats['swap']
+                if [stats['mem.total'],stats['mem.rss'],\
+                    stats['mem.swap']].count(0) != 3:
+                    active = True
+            if self.options.hide_inactive and not active:
+                pass
+            else:
+                cgroup_stats.append(stats)
+        return cgroup_stats
+
+    def update(self):
+        removed_group_names = []
+        for name, cgroup_list in self.cgroups.iteritems():
+            try:
+                for _cgroup in cgroup_list:
+                    _cgroup.update()
+            except IOError, e:
+                if e.args and e.args[0] == errno.ENOENT:
+                    removed_group_names.append(name)
+        for name in removed_group_names:
+            del self.cgroups[name]
+
+        self.hostcpuinfo.update()
+        self.cpu_delta = self.hostcpuinfo.get_total_usage_delta()
+        now = time.time()
+        self.time_delta = now - self.last_time
+        self.last_time = now
+
 class CGTopUI:
     SORTING_KEYS = [
         'cpu.user',
@@ -45,22 +151,12 @@ class CGTopUI:
         'name',
     ]
 
-    def __init__(self, win, cgroups, options):
-        self.cgroups = cgroups
+    def __init__(self, win, cgstats, options):
+        self.cgstats = cgstats
         self.options = options
-
-        self.hostcpuinfo = cgroup.HostCPUInfo()
-        self.last_time   = time.time()
-
-        self.delay = 0.0
-        self.cpu_delta = 0
-        self.time_delta = 0
 
         self.sorting_key = 'name'
         self.sorting_reverse = False
-        self.hide_inactive = options.hide_inactive
-        self.hide_zero = options.hide_zero
-        self.hide_empty = options.hide_empty
 
         self._init_display_params()
         self._init_subsys_title()
@@ -90,13 +186,13 @@ class CGTopUI:
 
     def handle_key(self, key):
         def toggle_hide_inactive():
-            self.hide_inactive = not self.hide_inactive
+            self.options.hide_inactive = not self.options.hide_inactive
 
         def toggle_hide_zero():
-            self.hide_zero = not self.hide_zero
+            self.options.hide_zero = not self.options.hide_zero
 
         def toggle_hide_empty():
-            self.hide_empty = not self.hide_empty
+            self.options.hide_empty = not self.options.hide_empty
 
         key_bindings = {
             ord('q'):
@@ -143,28 +239,14 @@ class CGTopUI:
         while self.options.iterations is None or \
               iterations < self.options.iterations:
 
-            removed_group_names = []
 
             bef = time.time()
-            for name, cgroup_list in self.cgroups.iteritems():
-                try:
-                    for _cgroup in cgroup_list:
-                        _cgroup.update()
-                except IOError, e:
-                    if e.args and e.args[0] == errno.ENOENT:
-                        removed_group_names.append(name)
+            self.cgstats.update()
             aft = time.time()
 
-            for name in removed_group_names:
-                del self.cgroups[name]
-            self.delay = aft-bef
-            self.hostcpuinfo.update()
-            self.cpu_delta = self.hostcpuinfo.get_total_usage_delta()
-            now = time.time()
-            self.time_delta = now - self.last_time
-            self.last_time = now
+            debug_msg = "%.1f msec to collect statistics"%((aft-bef)*1000,)
+            self.refresh_display(debug_msg)
 
-            self.refresh_display()
             if self.options.iterations is not None:
                 iterations += 1
                 if iterations >= self.options.iterations:
@@ -185,69 +267,7 @@ class CGTopUI:
                 key = self.win.getch()
                 self.handle_key(key)
 
-    def get_cgroup_stats(self):
-        cgroup_stats = []
-        for name, cgroup_list in self.cgroups.iteritems():
-            cpu = mem = bio = None
-            proc_exists = False
-            for _cgroup in cgroup_list:
-                subsys_name = cgroup.subsystem_class2name[_cgroup.subsystem.__class__]
-                if subsys_name == 'cpu':
-                    cpu = _cgroup
-                elif subsys_name == 'memory':
-                    mem = _cgroup
-                elif subsys_name == 'blkio':
-                    bio = _cgroup
-                else: pass
-                if _cgroup.n_procs > 0:
-                    proc_exists = True
-            if self.hide_empty and not proc_exists:
-                continue
-            
-            active = False
-            stats = {}
-            stats['name'] = _cgroup.fullname
-            stats['n_procs'] = _cgroup.n_procs
-            stats['cpu.user'] = 0.0
-            stats['cpu.system'] = 0.0
-            stats['bio.read']  = 0.0
-            stats['bio.write'] = 0.0
-            stats['mem.total'] = 0
-            stats['mem.rss']   = 0
-            stats['mem.swap']  = 0
-
-            if cpu is not None:
-                if self.cpu_delta != 0:
-                    stats['cpu.user'] = float(cpu.usages_delta['user'])*100/self.cpu_delta
-                    stats['cpu.system'] = float(cpu.usages_delta['system'])*100/self.cpu_delta
-                if stats['cpu.user'] > 0.0 or stats['cpu.system'] > 0.0:
-                    active = True
-
-            if bio is not None:
-                bio_stats = bio.usages_delta
-                stats['bio.read']  = float(bio_stats['read'])/self.time_delta
-                stats['bio.write'] = float(bio_stats['write'])/self.time_delta
-                if stats['bio.read'] > 0.0 or stats['bio.write'] > 0.0:
-                    active = True
-
-            if mem is not None:
-                mem_stats = mem.usages_delta
-                stats['mem.total'] = mem_stats['total']
-                stats['mem.rss']   = mem_stats['rss']
-                stats['mem.swap']  = mem_stats['swap']
-                if stats['mem.swap'] != 0 or stats['mem.rss'] != 0 or \
-                   stats['mem.swap'] != 0:
-                    active = True
-            if self.hide_inactive and not active:
-                pass
-            else:
-                cgroup_stats.append(stats)
-        cgroup_stats.sort(key=lambda st: st[self.sorting_key],
-                          reverse=self.sorting_reverse)
-        return cgroup_stats
-
     def _init_display_params(self):
-        self.SUBSYS = ['cpu', 'blkio', 'memory', 'n_procs', 'name']
         subsys_sep_size = 2
         self.SUBSYS_SEP = ' '*subsys_sep_size
         item_sep_size   = 1
@@ -270,7 +290,7 @@ class CGTopUI:
 
     def _init_subsys_title(self):
         title_list = []
-        for name in self.SUBSYS[:-2]:
+        for name in self.cgstats.SUBSYSTEMS:
             width = self.ITEM_WIDTHS[name]*self.N_ITEMS[name]+self.N_ITEMS[name]-1
             title = '[' + name.upper().center(width-2) + ']'
             title_list.append(title)
@@ -309,8 +329,7 @@ class CGTopUI:
             'name':16,
         }
 
-    def refresh_display(self):
-        debug_msg = "%.1f msec elapsed to collect cgroups statistics"%(self.delay*1000,)
+    def refresh_display(self, debug_msg):
         def format(stats):
             w = self.ITEM_WIDTHS
             sep = self.ITEM_SEP
@@ -327,7 +346,7 @@ class CGTopUI:
             }
 
             def to_s(name):
-                if self.hide_zero and stats[name] == 0:
+                if self.options.hide_zero and stats[name] == 0:
                     return ' '.rjust(w[name])
                 else:
                     return item2formatters[name](stats[name]).rjust(w[name])
@@ -350,7 +369,9 @@ class CGTopUI:
                 ))
             return self.SUBSYS_SEP.join(strs)
 
-        cgroup_stats = self.get_cgroup_stats()
+        cgroup_stats = self.cgstats.get_cgroup_stats()
+        cgroup_stats.sort(key=lambda st: st[self.sorting_key],
+                          reverse=self.sorting_reverse)
         lines = map(format, cgroup_stats)
 
         if self.options.batch:
@@ -400,19 +421,8 @@ class CGTopUI:
         self.win.refresh()
 
 def run_cgtop_window(win, options):
-    def collect_cgroups_by_name(_cgroup, _cgroups):
-        if _cgroup.name not in _cgroups:
-            _cgroups[_cgroup.name] = []
-        _cgroups[_cgroup.name].append(_cgroup)
-    
-    cgroups = {}
-    SUBSYSTEMS = ['cpu', 'memory', 'blkio']
-    for subsys_name in SUBSYSTEMS:
-        mount_point = cgroup.subsystem2path[subsys_name]
-        root_cgroup = cgroup.scan_directory_recursively(subsys_name, mount_point, mount_point)
-        cgroup.walk_cgroups(root_cgroup, collect_cgroups_by_name, cgroups)
-
-    ui = CGTopUI(win, cgroups, options)
+    cgstats = CGTopStats(options)
+    ui = CGTopUI(win, cgstats, options)
     ui.run()
 
 def run_cgtop(options):
