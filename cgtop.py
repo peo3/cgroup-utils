@@ -298,35 +298,36 @@ class CGTopUI:
 
     def _init_item_titles(self):
         w = self.ITEM_WIDTHS
-        self.ITEM_TITLES = [
+        sep = self.ITEM_SEP
+        titles = []
+        titles.append(sep.join([
             'USR'.center(w['cpu.user']),
-            self.ITEM_SEP,
             'SYS'.center(w['cpu.system']),
-            self.SUBSYS_SEP,
+            ]))
+        titles.append(sep.join([
             'READ'.center(w['bio.read']),
-            self.ITEM_SEP,
             'WRITE'.center(w['bio.write']),
-            self.SUBSYS_SEP,
+            ]))
+        titles.append(sep.join([
             'TOTAL'.center(w['mem.total']),
-            self.ITEM_SEP,
             'RSS'.center(w['mem.rss']),
-            self.ITEM_SEP,
             'SWAP'.center(w['mem.swap']),
-            self.SUBSYS_SEP,
+            ]))
+        titles.append(sep.join([
             '#'.rjust(w['n_procs']),
-            self.ITEM_SEP,
             'NAME'.rjust(w['name']),
-            ]
-        self.TITLE_KEYS = {
-            'cpu.user':0,
-            'cpu.system':2,
-            'bio.read':4,
-            'bio.write':6,
-            'mem.total':8,
-            'mem.rss':10,
-            'mem.swap':12,
-            'n_procs':14,
-            'name':16,
+            ]))
+        self.ITEM_TITLE = self.SUBSYS_SEP.join(titles)
+        self.KEY2TITLE = {
+            'cpu.user':  'USR',
+            'cpu.system':'SYS',
+            'bio.read':  'READ',
+            'bio.write': 'WRITE',
+            'mem.total': 'TOTAL',
+            'mem.rss':   'RSS',
+            'mem.swap':  'SWAP',
+            'n_procs':   '#',
+            'name':      'NAME',
         }
 
     def refresh_display(self, debug_msg):
@@ -350,19 +351,10 @@ class CGTopUI:
                     return ' '.rjust(w[name])
                 else:
                     return item2formatters[name](stats[name]).rjust(w[name])
-            strs.append(sep.join([
-                to_s('cpu.user'),
-                to_s('cpu.system'),
-                ]))
-            strs.append(sep.join([
-                to_s('bio.read'),
-                to_s('bio.write'),
-                ]))
-            strs.append(sep.join([
-                to_s('mem.total'),
-                to_s('mem.rss'),
-                to_s('mem.swap'),
-                ]))
+            strs.append(sep.join([to_s('cpu.user'), to_s('cpu.system'), ]))
+            strs.append(sep.join([to_s('bio.read'), to_s('bio.write'), ]))
+            strs.append(sep.join([to_s('mem.total'), to_s('mem.rss'),
+                                  to_s('mem.swap'), ]))
             strs.append(sep.join([
                 str(stats['n_procs']).rjust(w['n_procs']),
                 stats['name']]
@@ -377,7 +369,7 @@ class CGTopUI:
         if self.options.batch:
             print debug_msg
             print self.SUBSYS_TITLE
-            print ''.join(self.ITEM_TITLES)
+            print self.ITEM_TITLE
             for l in lines:
                 print l
             sys.stdout.flush()
@@ -396,17 +388,15 @@ class CGTopUI:
 
         self.win.hline(n_lines, 0, ord(' ') | curses.A_REVERSE, self.width)
         n_lines += 1
-        remaining_cols = self.width
         status_msg = ''
-        for i in xrange(len(self.ITEM_TITLES)):
-            attr = curses.A_REVERSE
-            title = self.ITEM_TITLES[i]
-            if i == self.TITLE_KEYS[self.sorting_key]:
-                attr |= curses.A_BOLD
-            title = title[:remaining_cols]
-            remaining_cols -= len(title)
-            self.win.addstr(title, attr)
-        num_lines = min(len(lines), self.height - n_lines - int(bool(status_msg)))
+        key_title = self.KEY2TITLE[self.sorting_key]
+        pre, post = self.ITEM_TITLE.split(key_title)
+        self.win.addstr(pre, curses.A_REVERSE)
+        self.win.addstr(key_title, curses.A_BOLD|curses.A_REVERSE)
+        self.win.addstr(post, curses.A_REVERSE)
+
+        rest_lines = self.height - n_lines - int(bool(status_msg))
+        num_lines = min(len(lines), rest_lines)
         for i in xrange(num_lines):
             try:
                 self.win.insstr(i + n_lines, 0, lines[i].encode('utf-8'))
