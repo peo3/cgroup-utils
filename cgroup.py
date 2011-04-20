@@ -84,39 +84,56 @@ for line in lines:
 class Subsystem(object):
     def __init__(self, path):
         self.path = path
-    def get_status(self): return ''
-    def get_global_status(self): return ''
-    def get_legend(self): return ''
 
-class SubsystemCpu(Subsystem):
-    def __init__(self, path):
-        self.path = path
-        self.path_shares = os.path.join(self.path, 'cpu.shares')
+        self.CONFIGS = self._DEFAULTS.keys()
+        self.DEFAULTS = {}
+        for name, val in self._DEFAULTS.iteritems():
+            self.DEFAULTS[self.NAME+'.'+name] = val
+
+        self.param2path = {}
+        for param in self.CONFIGS+self.STATS:
+            attrname = 'path_'+param.replace('.', '_').replace('#', '_')
+            if '#' in param:
+                paramname = param.split('#')[0]
+            else:
+                paramname = param
+            _path = os.path.join(self.path, self.NAME+'.'+paramname)
+            setattr(self, attrname, _path)
+            self.param2path[paramname] = _path
 
     def get_configs(self):
         configs = {}
-        configs['cpu.shares'] = int(readfile(self.path_shares))
+        for config in self.CONFIGS:
+            if '#' in config: continue
+
+            val = long(readfile(self.param2path[config]))
+            configs[self.NAME+'.'+config] = val
         return configs
 
     def get_default_configs(self):
-        configs = {}
-        configs['cpu.shares'] = 1024
-        return configs
+        return self.DEFAULTS.copy()
 
     def get_usages(self):
-        return {}
+        usages = {}
+        for stat in self.STATS:
+            val = long(readfile(self.param2path[stat]))
+            usages[self.NAME+'.'+stat] = val
+        return usages
+
+class SubsystemCpu(Subsystem):
+    NAME = 'cpu'
+    STATS = []
+    _DEFAULTS = {
+        'shares': 1024,
+        }
 
 class SubsystemCpuacct(Subsystem):
-    def __init__(self, path):
-        self.path = path
-        self.path_usage = os.path.join(self.path, 'cpuacct.usage')
-        self.path_stat  = os.path.join(self.path, 'cpuacct.stat')
-
-    def get_configs(self):
-        return {}
-
-    def get_default_configs(self):
-        return {}
+    NAME = 'cpuacct'
+    STATS = [
+        'usage',
+        'stat',
+        ]
+    _DEFAULTS = {}
 
     def get_usages(self):
         usage = int(readfile(self.path_usage))
@@ -126,21 +143,9 @@ class SubsystemCpuacct(Subsystem):
                 'usage': usage}
 
 class SubsystemCpuset(Subsystem):
+    NAME = 'cpuset'
     STATS = [
         'memory_pressure',
-    ]
-    CONFIGS = [
-        'cpu_exclusive',
-        'cpus',
-        'mem_exclusive',
-        'mem_hardwall',
-        'memory_migrate',
-        'memory_pressure_enabled',
-        'memory_spread_page',
-        'memory_spread_slab',
-        'mems',
-        'sched_load_balance',
-        'sched_relax_domain_level',
     ]
     _DEFAULTS = {
         'cpu_exclusive': 0,
@@ -155,18 +160,6 @@ class SubsystemCpuset(Subsystem):
         'sched_load_balance': 1,
         'sched_relax_domain_level': -1,
     }
-    DEFAULTS = {}
-    for name, val in _DEFAULTS.iteritems():
-        DEFAULTS['cpuset.'+name] = val
-
-    def __init__(self, path):
-        self.path = path
-        self.param2path = {}
-        for param in self.CONFIGS+self.STATS:
-            attrname = 'path_'+param.replace('.', '_')
-            _path = os.path.join(self.path, 'cpuset.'+param)
-            setattr(self, attrname, _path)
-            self.param2path[param] = _path
 
     def get_configs(self):
         configs = {}
@@ -174,28 +167,12 @@ class SubsystemCpuset(Subsystem):
             if config in ['mems', 'cpus']:
                 val = readfile(self.param2path[config]).strip()
             else:
-                val = int(readfile(self.param2path[config]))
+                val = long(readfile(self.param2path[config]))
             configs['cpuset.'+config] = val
         return configs
 
-    def get_default_configs(self):
-        return self.DEFAULTS.copy()
-
-    def get_usages(self):
-        pressure = long(readfile(self.param2path['memory_pressure']))
-        return {'cpuset.memory_pressure':pressure}
-
 class SubsystemMemory(Subsystem):
-    _p = re.compile('rss (?P<val>\d+)')
-    CONFIGS = [
-        'limit_in_bytes',
-        'memsw.limit_in_bytes',
-        'move_charge_at_immigrate',
-        'oom_control',
-        'soft_limit_in_bytes',
-        'swappiness',
-        'use_hierarchy',
-        ]
+    NAME = 'memory'
     STATS = [
         'usage_in_bytes',
         'memsw.usage_in_bytes',
@@ -206,62 +183,43 @@ class SubsystemMemory(Subsystem):
     _DEFAULTS = {
         'limit_in_bytes': MAX_ULONGLONG,
         'memsw.limit_in_bytes': MAX_ULONGLONG,
-        'move_charge_at_immigrate': 0L,
-        'oom_control.oom_kill_disable': 0L,
-        'oom_control.under_oom': 0L,
+        'move_charge_at_immigrate': 0,
+        'oom_control#oom_kill_disable': 0,
+        'oom_control#under_oom': 0,
         'soft_limit_in_bytes': MAX_ULONGLONG,
-        'swappiness': 60L,
-        'use_hierarchy': 0L,
+        'swappiness': 60,
+        'use_hierarchy': 0,
         }
-    DEFAULTS = {}
-    for name, val in _DEFAULTS.iteritems():
-        DEFAULTS['memory.'+name] = val
+
     def __init__(self, path):
-        self.path = path
-        self.param2path = {}
-        for param in self.CONFIGS+self.STATS:
-            attrname = 'path_'+param.replace('.', '_')
-            _path = os.path.join(self.path, 'memory.'+param)
-            setattr(self, attrname, _path)
-            self.param2path[param] = _path
+        Subsystem.__init__(self, path)
         self.meminfo = host.MemInfo()
+        self._p = re.compile('rss (?P<val>\d+)')
 
     def get_rss(self):
         cont = readfile(self.path_stat)
-        return int(self._p.search(cont).group('val'))
+        return long(self._p.search(cont).group('val'))
 
     def get_usages(self):
         usages = {}
-        usages['total'] = int(readfile(self.path_usage_in_bytes))
-        usages['swap']  = int(readfile(self.path_memsw_usage_in_bytes)) - usages['total']
+        usages['total'] = long(readfile(self.path_usage_in_bytes))
+        usages['swap']  = long(readfile(self.path_memsw_usage_in_bytes)) - usages['total']
         usages['rss']   = self.get_rss()
         return usages
 
     def get_configs(self):
-        configs = {}
-        for config in self.CONFIGS:
-            if config == 'oom_control':
-                lines = readfile(self.param2path[config]).split('\n')
-                name, val = lines[0].split(' ')
-                configs['memory.'+config+'.'+name] = long(val)
-                name, val = lines[1].split(' ')
-                configs['memory.'+config+'.'+name] = long(val)
-                
-            else:
-                configs['memory.'+config] = long(readfile(self.param2path[config]))
+        configs = Subsystem.get_configs(self)
+        lines = readfile(self.param2path['oom_control']).split('\n')
+        name, val = lines[0].split(' ')
+        configs['memory.oom_control#'+name] = long(val)
+        name, val = lines[1].split(' ')
+        configs['memory.oom_control#'+name] = long(val)
         return configs
 
-    def get_default_configs(self):
-        return self.DEFAULTS.copy()
-
 class SubsystemBlkio(Subsystem):
-    CONFIGS = [
-        'weight',
-        'weight_device',
-        'throttle.read_iops_device',
-        'throttle.write_iops_device',
-        'throttle.read_bps_device',
-        'throttle.write_bps_device',
+    NAME = 'blkio'
+    STATS = [
+        'io_service_bytes',
         ]
     _DEFAULTS = {
         'weight': 1000,
@@ -271,29 +229,17 @@ class SubsystemBlkio(Subsystem):
         'throttle.read_bps_device': '',
         'throttle.write_bps_device': '',
         }
-    DEFAULTS = {}
-    for name, val in _DEFAULTS.iteritems():
-        DEFAULTS['blkio.'+name] = val
-    def __init__(self, path):
-        self.path = path
-        self.path_io_service = os.path.join(self.path, 'blkio.io_service_bytes')
-        self.param2path = {}
-        for param in self.CONFIGS:
-            attrname = 'path_'+param.replace('.', '_')
-            _path = os.path.join(self.path, 'blkio.'+param)
-            setattr(self, attrname, _path)
-            self.param2path[param] = _path
 
     def get_usages(self):
         usages = {'read':0, 'write':0}
-        for line in readfile(self.path_io_service).split('\n'):
+        for line in readfile(self.path_io_service_bytes).split('\n'):
             try:
                 (dev,type,bytes) = line.split(' ')
             except ValueError:
                 # The last line consists of two items; we can ignore it.
                 break
-            if type == 'Read':  usages['read'] += int(bytes)
-            if type == 'Write': usages['write'] += int(bytes)
+            if type == 'Read':  usages['read'] += long(bytes)
+            if type == 'Write': usages['write'] += long(bytes)
         return usages
 
     def get_configs(self):
@@ -304,16 +250,15 @@ class SubsystemBlkio(Subsystem):
                 cont = cont.strip().replace('\n', ', ').replace('\t', ' ')
                 configs['blkio.'+config] = cont
             else:
-                configs['blkio.'+config] = int(readfile(self.param2path[config]))
+                configs['blkio.'+config] = long(readfile(self.param2path[config]))
         return configs
 
-    def get_default_configs(self):
-        return self.DEFAULTS.copy()
-
 class SubsystemFreezer(Subsystem):
-    def __init__(self, path):
-        self.path = path
-        self.path_state = os.path.join(self.path, 'freezer.state')
+    NAME = 'freezer'
+    STATS = {
+        'state',
+        }
+    _DEFAULT = {}
 
     def get_usages(self):
         # XXX
@@ -322,12 +267,6 @@ class SubsystemFreezer(Subsystem):
         except IOError:
             # Root group does not have the file
             return {'state': ''}
-
-    def get_configs(self):
-        return {}
-
-    def get_default_configs(self):
-        return {}
 
 subsystem_name2class = {
     'cpu':SubsystemCpu,
