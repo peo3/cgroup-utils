@@ -30,6 +30,7 @@ import time
 import errno
 
 import cgroup
+import host
 import formatter
 
 class CGTopStats:
@@ -52,7 +53,7 @@ class CGTopStats:
             cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
         self.cgroups = cgroups
 
-        self.hostcpuinfo = cgroup.HostCPUInfo()
+        self.hostcpuinfo = host.CPUInfo()
         self.last_time   = time.time()
 
         self.cpu_delta = 0

@@ -21,15 +21,13 @@
 from __future__ import with_statement
 import sys
 import os, os.path
-import re
-import glob
 import optparse
 
 import cgroup
+import host
 import formatter
 
 legends = {
-    'cpu':    "",
     'cpuacct':"Consumed CPU time",
     'memory': "TotalUsed, RSS, SwapUsed",
     'blkio':  "Read, Write",
@@ -37,11 +35,14 @@ legends = {
     }
 
 def format_cpu(usages):
-    return ''
+    return None
 
 def format_cpuacct(usages):
     n = formatter.max_width_time
     return formatter.usec2str(usages['usage']).rjust(n)
+
+def format_cpuset(usages):
+    return None
 
 def format_memory(usages):
     vals = [usages['total'],usages['rss'],usages['swap']]
@@ -59,13 +60,20 @@ def format_freezer(usages):
 formatters = {
     'cpu':    format_cpu,
     'cpuacct':format_cpuacct,
+    'cpuset': format_cpuset,
     'memory': format_memory,
     'blkio':  format_blkio,
     'freezer':format_freezer,
     }
 
+def get_cpuset_global_status():
+    cpuinfo = host.CPUInfo()
+    meminfo = host.MemInfo()
+    return "Online CPU %s, Online Node %s"%(cpuinfo.get_online(),
+                                            meminfo.get_online())
+
 def get_memory_global_status():
-    meminfo = cgroup.HostMemInfo()
+    meminfo = host.MemInfo()
     meminfo.update()
     return "Total=%s, Used(w/o buffer/cache)=%s, SwapUsed=%s"% \
            (formatter.byte2str(meminfo['MemTotal']),
@@ -73,8 +81,9 @@ def get_memory_global_status():
             formatter.byte2str(meminfo['SwapUsed']))
 
 get_global_status = {
-    'cpuacct':lambda: None,
     'cpu':    lambda: None,
+    'cpuacct':lambda: None,
+    'cpuset': get_cpuset_global_status,
     'memory': get_memory_global_status,
     'blkio':  lambda: None,
     'freezer':lambda: None,
@@ -101,11 +110,14 @@ def print_cgroup(subsys_name, _cgroup, show_pid, verbose):
         status_indent = 24
         s = "%s%s:"%('  '*_cgroup.depth, _cgroup.name)
         indent = proc_indent-len(s)
-        if indent < 0: indent = 0
+        indent = min(indent, 0)
         s = "%s%s%s"%(s,' '*indent, procs)
         indent = status_indent-len(s)
-        if indent < 0: indent = 0
-        s = "%s%s(%s)"%(s,' '*indent, status)
+        indent = min(indent, 0)
+        if status is None:
+            s = "%s%s"%(s,' '*indent)
+        else:
+            s = "%s%s(%s)"%(s,' '*indent, status)
     print(s)
 
 def main():
@@ -147,7 +159,11 @@ def main():
     global_status = get_global_status[options.target_subsystem]()
     if global_status is not None:
         print('# '+global_status)
-    print('# Legend: # of procs ('+legends[options.target_subsystem]+')')
+    if options.target_subsystem in legends:
+        legend = legends[options.target_subsystem]
+        print("# Legend: # of procs (%s)"%(legend,))
+    else:
+        print('# Legend: # of procs')
     print_cgroups_recursively(root_cgroup)
 
 if __name__ == "__main__":

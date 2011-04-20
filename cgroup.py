@@ -17,19 +17,10 @@
 # Copyright (c) 2011 peo3 <peo314159265@gmail.com>
 
 from __future__ import with_statement
-import sys
 import os, os.path
 import re
-import glob
-import optparse
-try:
-    import multiprocessing
-except ImportError:
-    # For python 2.5 or older
-    class Multiprocessing:
-        def cpu_count(self):
-            return len(readfile('/proc/cpuinfo').split('CPU')) -1
-    multiprocessing = Multiprocessing()
+
+import host
 
 def readfile(filepath):
     with open(filepath) as f:
@@ -97,23 +88,6 @@ class Subsystem(object):
     def get_global_status(self): return ''
     def get_legend(self): return ''
 
-class HostCPUInfo():
-    def __init__(self):
-        self._update()
-        self._total_usage_prev = self.total_usage
-    def _update(self):
-        line = readfile('/proc/stat').split('\n')[0]
-        line = line[5:] # get rid of 'cpu  '
-        usages = map(lambda x: int(x), line.split(' '))
-        self.total_usage = sum(usages)/multiprocessing.cpu_count()
-        # Total ticks
-        #self.total_usage = int(line.split(' ')[5])
-    def update(self):
-        self._total_usage_prev = self.total_usage
-        self._update()
-    def get_total_usage_delta(self):
-        return self.total_usage - self._total_usage_prev
-
 class SubsystemCpu(Subsystem):
     def __init__(self, path):
         self.path = path
@@ -151,24 +125,65 @@ class SubsystemCpuacct(Subsystem):
                 'system': int(system.split(' ')[1]),
                 'usage': usage}
 
-class HostMemInfo(dict):
-    _p = re.compile('^(?P<key>[\w\(\)]+):\s+(?P<val>\d+)')
-    def _update(self):
-        for line in readfile('/proc/meminfo').split('\n'):
-            m = self._p.search(line)
-            if m:
-                self[m.group('key')] = int(m.group('val'))*1024
+class SubsystemCpuset(Subsystem):
+    STATS = [
+        'memory_pressure',
+    ]
+    CONFIGS = [
+        'cpu_exclusive',
+        'cpus',
+        'mem_exclusive',
+        'mem_hardwall',
+        'memory_migrate',
+        'memory_pressure_enabled',
+        'memory_spread_page',
+        'memory_spread_slab',
+        'mems',
+        'sched_load_balance',
+        'sched_relax_domain_level',
+    ]
+    _DEFAULTS = {
+        'cpu_exclusive': 0,
+        'cpus': host.CPUInfo().get_online(),
+        'mem_exclusive': 0,
+        'mem_hardwall': 0,
+        'memory_migrate': 0,
+        'memory_pressure_enabled': 0,
+        'memory_spread_page': 0,
+        'memory_spread_slab': 0,
+        'mems': host.MemInfo().get_online(),
+        'sched_load_balance': 1,
+        'sched_relax_domain_level': -1,
+    }
+    DEFAULTS = {}
+    for name, val in _DEFAULTS.iteritems():
+        DEFAULTS['cpuset.'+name] = val
 
-    def _calc(self):
-        self['MemUsed'] = self['MemTotal'] - self['MemFree'] - \
-                          self['Buffers'] - self['Cached']
-        self['SwapUsed'] = self['SwapTotal'] - self['SwapFree'] - \
-                           self['SwapCached']
-        self['MemKernel'] = self['Slab'] + self['KernelStack'] + \
-                            self['PageTables'] + self['VmallocUsed']
-    def update(self):
-        self._update()
-        self._calc()
+    def __init__(self, path):
+        self.path = path
+        self.param2path = {}
+        for param in self.CONFIGS+self.STATS:
+            attrname = 'path_'+param.replace('.', '_')
+            _path = os.path.join(self.path, 'cpuset.'+param)
+            setattr(self, attrname, _path)
+            self.param2path[param] = _path
+
+    def get_configs(self):
+        configs = {}
+        for config in self.CONFIGS:
+            if config in ['mems', 'cpus']:
+                val = readfile(self.param2path[config]).strip()
+            else:
+                val = int(readfile(self.param2path[config]))
+            configs['cpuset.'+config] = val
+        return configs
+
+    def get_default_configs(self):
+        return self.DEFAULTS.copy()
+
+    def get_usages(self):
+        pressure = long(readfile(self.param2path['memory_pressure']))
+        return {'cpuset.memory_pressure':pressure}
 
 class SubsystemMemory(Subsystem):
     _p = re.compile('rss (?P<val>\d+)')
@@ -209,7 +224,7 @@ class SubsystemMemory(Subsystem):
             _path = os.path.join(self.path, 'memory.'+param)
             setattr(self, attrname, _path)
             self.param2path[param] = _path
-        self.meminfo = HostMemInfo()
+        self.meminfo = host.MemInfo()
 
     def get_rss(self):
         cont = readfile(self.path_stat)
@@ -317,6 +332,7 @@ class SubsystemFreezer(Subsystem):
 subsystem_name2class = {
     'cpu':SubsystemCpu,
     'cpuacct':SubsystemCpuacct,
+    'cpuset':SubsystemCpuset,
     'memory':SubsystemMemory,
     'blkio':SubsystemBlkio,
     'freezer':SubsystemFreezer,
