@@ -18,9 +18,7 @@
 #
 # Copyright (c) 2011 peo3 <peo314159265@gmail.com>
 
-from __future__ import with_statement
 import sys
-import os, os.path
 import optparse
 
 import cgroup
@@ -126,14 +124,14 @@ def main():
     parser = optparse.OptionParser()
     parser.add_option('-o', action='store', type='string',
                       dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
-                      help='Specify a subsystem')
+                      help='Specify a subsystem [cpu]')
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose',
                       default=False, help='Show detailed messages')
     parser.add_option('--debug', action='store_true', dest='debug',
-                      default=False, help='Show debug messages')
+                      default=False, help='Show debug messages [False]')
     parser.add_option('-p', '--show-pid', action='store_true',
                       dest='show_pid', default=False,
-                      help='Show PID (use with -v)')
+                      help='Show PID (use with -v) [False]')
     (options, _args) = parser.parse_args()
     if options.debug:
         print options

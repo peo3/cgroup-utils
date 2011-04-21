@@ -431,23 +431,23 @@ def main():
     parser = optparse.OptionParser(usage=USAGE, version='cgtop ' + VERSION)
     parser.add_option('-i', '--hide-inactive', action='store_true',
                       dest='hide_inactive', default=False,
-                      help='Hide inactive groups')
+                      help='Hide inactive groups [False]')
     parser.add_option('-z', '--hide-zero', action='store_true',
                       dest='hide_zero', default=False,
-                      help='Hide zero numbers')
+                      help='Hide zero numbers [False]')
     parser.add_option('-e', '--hide-empty', action='store_true',
                       dest='hide_empty', default=False,
-                      help='Hide empty groups')
+                      help='Hide empty groups [False]')
     parser.add_option('-b', '--batch', action='store_true', dest='batch',
                       help='non-interactive mode')
     parser.add_option('-n', '--iter', type='int', dest='iterations',
                       metavar='NUM',
-                      help='number of iterations before ending [infinite]')
+                      help='Number of iterations before ending [infinite]')
     parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
-                      help='delay between iterations [1 second]',
+                      help='Delay between iterations [1 second]',
                       metavar='SEC', default=1)
     parser.add_option('--debug', action='store_true', dest='debug',
-                      default=False, help='Show debug messages')
+                      default=False, help='Show debug messages [False]')
 
     options, args = parser.parse_args()
     if args:
