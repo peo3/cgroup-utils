@@ -322,10 +322,14 @@ class CGroup(object):
         def calc_delta_recursive(usage, _prev, delta):
             for k, v in usage.iteritems():
                 if v.__class__ is not dict:
-                    delta[k] = v - _prev[k]
+                    if k in _prev:
+                        delta[k] = v - _prev[k]
+                    else:
+                        delta[k] = None
                     continue
                 _delta = {}
-                calc_delta_recursive(v, _prev[k], _delta)
+                if k in _prev:
+                    calc_delta_recursive(v, _prev[k], _delta)
                 delta[k] = _delta
 
         self.usages_delta = {}
