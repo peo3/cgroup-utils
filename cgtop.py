@@ -95,8 +95,8 @@ class CGTopStats:
                     return float(delta)*100/self.cpu_delta
                     
                 if self.cpu_delta != 0:
-                    stats['cpu.user']   = percent(cpu.usages_delta['user'])
-                    stats['cpu.system'] = percent(cpu.usages_delta['system'])
+                    stats['cpu.user']   = percent(cpu.usages_delta['stat']['user'])
+                    stats['cpu.system'] = percent(cpu.usages_delta['stat']['system'])
                 if (stats['cpu.user']+stats['cpu.system']) > 0.0:
                     active = True
 

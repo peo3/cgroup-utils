@@ -78,6 +78,8 @@ for line in lines:
         if opt in subsystem_names:
             subsystem2path[opt] = path
 
+class SimpleStat(dict): pass
+
 #
 # Sussystems and Cgroup classes
 #
@@ -85,69 +87,80 @@ class Subsystem(object):
     def __init__(self, path):
         self.path = path
 
-        self.CONFIGS = self._DEFAULTS.keys()
-        self.DEFAULTS = {}
-        for name, val in self._DEFAULTS.iteritems():
-            self.DEFAULTS[self.NAME+'.'+name] = val
-
         self.param2path = {}
-        for param in self.CONFIGS+self.STATS:
-            attrname = 'path_'+param.replace('.', '_').replace('#', '_')
-            if '#' in param:
-                paramname = param.split('#')[0]
-            else:
-                paramname = param
-            _path = os.path.join(self.path, self.NAME+'.'+paramname)
+        for param in self.CONFIGS.keys()+self.STATS.keys():
+            attrname = 'path_'+param.replace('.', '_')
+            _path = os.path.join(self.path, self.NAME+'.'+param)
             setattr(self, attrname, _path)
-            self.param2path[paramname] = _path
+            self.param2path[param] = _path
 
     def get_configs(self):
         configs = {}
-        for config in self.CONFIGS:
-            if '#' in config: continue
-
-            val = long(readfile(self.param2path[config]))
-            configs[self.NAME+'.'+config] = val
+        for config, default in self.CONFIGS.iteritems():
+            cls = default.__class__
+            path = self.param2path[config]
+            if cls is dict:
+                # Complex content will be manipulated in a subclass
+                continue
+            elif cls is SimpleStat:
+                val = self.simple_parser(path)
+            elif cls is str:
+                val = readfile(path).strip()
+            else:
+                val = long(readfile(path))
+            configs[config] = val
         return configs
 
     def get_default_configs(self):
-        return self.DEFAULTS.copy()
+        return self.CONFIGS.copy()
 
     def get_usages(self):
         usages = {}
-        for stat in self.STATS:
-            val = long(readfile(self.param2path[stat]))
-            usages[self.NAME+'.'+stat] = val
+        for stat, cls in self.STATS.iteritems():
+            path = self.param2path[stat]
+            if cls is dict:
+                # Complex content will be manipulated in a subclass
+                continue
+            elif cls is SimpleStat:
+                val = self.simple_parser(path)
+            elif cls is str:
+                val = readfile(path).strip()
+            else:
+                val = long(readfile(path))
+            usages[stat] = val
         return usages
+
+    def simple_parser(self, path):
+        ret = {}
+        for line in readfile(path).split('\n')[:-1]:
+            name, val = line.split(' ')
+            ret[name] = long(val)
+        return ret
 
 class SubsystemCpu(Subsystem):
     NAME = 'cpu'
-    STATS = []
-    _DEFAULTS = {
-        'shares': 1024,
-        }
+    STATS = {}
+    CONFIGS = {
+        'shares':        1024,
+        # Are the default values correct?
+        'rt_period_us':  long(readfile('/proc/sys/kernel/sched_rt_period_us')),
+        'rt_runtime_us': long(readfile('/proc/sys/kernel/sched_rt_runtime_us')),
+    }
 
 class SubsystemCpuacct(Subsystem):
     NAME = 'cpuacct'
-    STATS = [
-        'usage',
-        'stat',
-        ]
-    _DEFAULTS = {}
-
-    def get_usages(self):
-        usage = int(readfile(self.path_usage))
-        user, system = readfile(self.path_stat).split('\n')[:2]
-        return {'user': int(user.split(' ')[1]),
-                'system': int(system.split(' ')[1]),
-                'usage': usage}
+    STATS = {
+        'usage': long,
+        'stat': SimpleStat,
+    }
+    CONFIGS = {}
 
 class SubsystemCpuset(Subsystem):
     NAME = 'cpuset'
-    STATS = [
-        'memory_pressure',
-    ]
-    _DEFAULTS = {
+    STATS = {
+        'memory_pressure': long,
+    }
+    CONFIGS = {
         'cpu_exclusive': 0,
         'cpus': host.CPUInfo().get_online(),
         'mem_exclusive': 0,
@@ -161,110 +174,112 @@ class SubsystemCpuset(Subsystem):
         'sched_relax_domain_level': -1,
     }
 
-    def get_configs(self):
-        configs = {}
-        for config in self.CONFIGS:
-            if config in ['mems', 'cpus']:
-                val = readfile(self.param2path[config]).strip()
-            else:
-                val = long(readfile(self.param2path[config]))
-            configs['cpuset.'+config] = val
-        return configs
-
 class SubsystemMemory(Subsystem):
     NAME = 'memory'
-    STATS = [
-        'usage_in_bytes',
-        'memsw.usage_in_bytes',
-        'stat',
-        'memsw.failcnt',
-        ]
+    STATS = {
+        'usage_in_bytes': long,
+        'memsw.usage_in_bytes': long,
+        'stat': SimpleStat,
+        'memsw.failcnt': long,
+    }
     MAX_ULONGLONG = 2**63-1
-    _DEFAULTS = {
+    CONFIGS = {
         'limit_in_bytes': MAX_ULONGLONG,
         'memsw.limit_in_bytes': MAX_ULONGLONG,
         'move_charge_at_immigrate': 0,
-        'oom_control#oom_kill_disable': 0,
-        'oom_control#under_oom': 0,
+        'oom_control': SimpleStat({'oom_kill_disable':0, 'under_oom':0}),
         'soft_limit_in_bytes': MAX_ULONGLONG,
         'swappiness': 60,
         'use_hierarchy': 0,
-        }
-
-    def __init__(self, path):
-        Subsystem.__init__(self, path)
-        self.meminfo = host.MemInfo()
-        self._p = re.compile('rss (?P<val>\d+)')
-
-    def get_rss(self):
-        cont = readfile(self.path_stat)
-        return long(self._p.search(cont).group('val'))
+    }
 
     def get_usages(self):
-        usages = {}
-        usages['total'] = long(readfile(self.path_usage_in_bytes))
-        usages['swap']  = long(readfile(self.path_memsw_usage_in_bytes)) - usages['total']
-        usages['rss']   = self.get_rss()
+        usages = Subsystem.get_usages(self)
+        usages['stat'] = self.simple_parser(self.param2path['stat'])
+
+        # For convenience
+        usages['total'] = usages['usage_in_bytes']
+        usages['swap']  = usages['memsw.usage_in_bytes'] - usages['total']
+        usages['rss']   = usages['stat']['rss']
+        return usages
+
+class SubsystemBlkio(Subsystem):
+    NAME = 'blkio'
+    STATS = {
+        'io_merged': dict,
+        'io_queued': dict,
+        'io_service_bytes': dict,
+        'io_service_time': dict,
+        'io_serviced': dict,
+        'io_wait_time': dict,
+        'sectors': SimpleStat,
+        'throttle.io_service_bytes': dict,
+        'throttle.io_serviced': dict,
+        'time': SimpleStat,
+    }
+    CONFIGS = {
+        'throttle.read_iops_device': SimpleStat({}),
+        'throttle.write_iops_device': SimpleStat({}),
+        'throttle.read_bps_device': SimpleStat({}),
+        'throttle.write_bps_device': SimpleStat({}),
+        'weight': 1000,
+        'weight_device': SimpleStat({}),
+    }
+
+    def parse_blkio_stat(self, path):
+        ret = {}
+        for line in readfile(path).split('\n')[:-1]:
+            if line.count(' ') == 2:
+                dev, type, val = line.split(' ')
+                if dev not in ret:
+                    ret[dev] = {}
+                ret[dev][type] = long(val)
+            elif line.count(' ') == 1:
+                type, val = line.split(' ')
+                ret[type] = long(val)
+            else:
+                raise ValueError(line)
+        return ret
+
+    def get_usages(self):
+        usages = Subsystem.get_usages(self)
+        for name, cls in self.STATS.iteritems():
+            if cls is not dict: continue
+
+            path = self.param2path[name]
+            usages[name] = self.parse_blkio_stat(path)
+
+        # For convenience
+        n_reads = n_writes = 0L
+        for k,v in usages['io_service_bytes'].iteritems():
+            if k == 'Total': continue
+            n_reads += v['Read']
+            n_writes += v['Write']
+        usages['read'] = n_reads
+        usages['write'] = n_writes
+            
         return usages
 
     def get_configs(self):
         configs = Subsystem.get_configs(self)
-        lines = readfile(self.param2path['oom_control']).split('\n')
-        name, val = lines[0].split(' ')
-        configs['memory.oom_control#'+name] = long(val)
-        name, val = lines[1].split(' ')
-        configs['memory.oom_control#'+name] = long(val)
-        return configs
+        for name, cls in self.CONFIGS.iteritems():
+            if cls is not dict: continue
 
-class SubsystemBlkio(Subsystem):
-    NAME = 'blkio'
-    STATS = [
-        'io_service_bytes',
-        ]
-    _DEFAULTS = {
-        'weight': 1000,
-        'weight_device': '',
-        'throttle.read_iops_device': '',
-        'throttle.write_iops_device': '',
-        'throttle.read_bps_device': '',
-        'throttle.write_bps_device': '',
-        }
-
-    def get_usages(self):
-        usages = {'read':0, 'write':0}
-        for line in readfile(self.path_io_service_bytes).split('\n'):
-            try:
-                (dev,type,bytes) = line.split(' ')
-            except ValueError:
-                # The last line consists of two items; we can ignore it.
-                break
-            if type == 'Read':  usages['read'] += long(bytes)
-            if type == 'Write': usages['write'] += long(bytes)
-        return usages
-
-    def get_configs(self):
-        configs = {}
-        for config in self.CONFIGS:
-            if '_device' in config:
-                cont = readfile(self.param2path[config])
-                cont = cont.strip().replace('\n', ', ').replace('\t', ' ')
-                configs['blkio.'+config] = cont
-            else:
-                configs['blkio.'+config] = long(readfile(self.param2path[config]))
+            path = self.param2path[name]
+            configs[name] = self.parse_blkio_stat(path)
         return configs
 
 class SubsystemFreezer(Subsystem):
     NAME = 'freezer'
     STATS = {
-        'state',
-        }
-    _DEFAULT = {}
+        'state': str,
+    }
+    CONFIGS = {}
 
     def get_usages(self):
-        # XXX
-        try:
+        if os.path.exists(self.path_state):
             return {'state': "%s"%(readfile(self.path_state).strip(),),}
-        except IOError:
+        else:
             # Root group does not have the file
             return {'state': ''}
 
@@ -327,9 +342,18 @@ class CGroup(object):
     def _update_usages(self):
         prev = self.usages
         self.__update_usages()
+
+        def calc_delta_recursive(usage, _prev, delta):
+            for k, v in usage.iteritems():
+                if v.__class__ is not dict:
+                    delta[k] = v - _prev[k]
+                    continue
+                _delta = {}
+                calc_delta_recursive(v, _prev[k], _delta)
+                delta[k] = _delta
+
         self.usages_delta = {}
-        for name, usage in self.usages.iteritems():
-            self.usages_delta[name] = usage - prev[name]
+        calc_delta_recursive(self.usages, prev, self.usages_delta)
 
     def update(self):
         self._update_n_procs()
