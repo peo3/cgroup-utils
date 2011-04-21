@@ -78,12 +78,43 @@ for line in lines:
         if opt in subsystem_names:
             subsystem2path[opt] = path
 
-class SimpleStat(dict): pass
+class SimpleStat(dict):
+    @staticmethod
+    def parse(path):
+        ret = {}
+        for line in readfile(path).split('\n')[:-1]:
+            name, val = line.split(' ')
+            ret[name] = long(val)
+        return ret
+
+class BlkioStat(dict):
+    @staticmethod
+    def parse(path):
+        ret = {}
+        for line in readfile(path).split('\n')[:-1]:
+            if line.count(' ') == 2:
+                dev, type, val = line.split(' ')
+                if dev not in ret:
+                    ret[dev] = {}
+                ret[dev][type] = long(val)
+            elif line.count(' ') == 1:
+                type, val = line.split(' ')
+                ret[type] = long(val)
+            else:
+                raise EnvironmentError(line)
+        return ret
 
 #
 # Sussystems and Cgroup classes
 #
 class Subsystem(object):
+    PARSERS = {
+        int:  lambda path: int(readfile(path)),
+        long: lambda path: long(readfile(path)),
+        str:  lambda path: readfile(path).strip(),
+        SimpleStat: SimpleStat.parse,
+        BlkioStat:  BlkioStat.parse,
+    }
     def __init__(self, path):
         self.path = path
 
@@ -99,16 +130,7 @@ class Subsystem(object):
         for config, default in self.CONFIGS.iteritems():
             cls = default.__class__
             path = self.param2path[config]
-            if cls is dict:
-                # Complex content will be manipulated in a subclass
-                continue
-            elif cls is SimpleStat:
-                val = self.simple_parser(path)
-            elif cls is str:
-                val = readfile(path).strip()
-            else:
-                val = long(readfile(path))
-            configs[config] = val
+            configs[config] = self.PARSERS[cls](path)
         return configs
 
     def get_default_configs(self):
@@ -118,24 +140,8 @@ class Subsystem(object):
         usages = {}
         for stat, cls in self.STATS.iteritems():
             path = self.param2path[stat]
-            if cls is dict:
-                # Complex content will be manipulated in a subclass
-                continue
-            elif cls is SimpleStat:
-                val = self.simple_parser(path)
-            elif cls is str:
-                val = readfile(path).strip()
-            else:
-                val = long(readfile(path))
-            usages[stat] = val
+            usages[stat] = self.PARSERS[cls](path)
         return usages
-
-    def simple_parser(self, path):
-        ret = {}
-        for line in readfile(path).split('\n')[:-1]:
-            name, val = line.split(' ')
-            ret[name] = long(val)
-        return ret
 
 class SubsystemCpu(Subsystem):
     NAME = 'cpu'
@@ -195,7 +201,6 @@ class SubsystemMemory(Subsystem):
 
     def get_usages(self):
         usages = Subsystem.get_usages(self)
-        usages['stat'] = self.simple_parser(self.param2path['stat'])
 
         # For convenience
         usages['total'] = usages['usage_in_bytes']
@@ -206,15 +211,15 @@ class SubsystemMemory(Subsystem):
 class SubsystemBlkio(Subsystem):
     NAME = 'blkio'
     STATS = {
-        'io_merged': dict,
-        'io_queued': dict,
-        'io_service_bytes': dict,
-        'io_service_time': dict,
-        'io_serviced': dict,
-        'io_wait_time': dict,
+        'io_merged': BlkioStat,
+        'io_queued': BlkioStat,
+        'io_service_bytes': BlkioStat,
+        'io_service_time': BlkioStat,
+        'io_serviced': BlkioStat,
+        'io_wait_time': BlkioStat,
         'sectors': SimpleStat,
-        'throttle.io_service_bytes': dict,
-        'throttle.io_serviced': dict,
+        'throttle.io_service_bytes': BlkioStat,
+        'throttle.io_serviced': BlkioStat,
         'time': SimpleStat,
     }
     CONFIGS = {
@@ -226,28 +231,8 @@ class SubsystemBlkio(Subsystem):
         'weight_device': SimpleStat({}),
     }
 
-    def parse_blkio_stat(self, path):
-        ret = {}
-        for line in readfile(path).split('\n')[:-1]:
-            if line.count(' ') == 2:
-                dev, type, val = line.split(' ')
-                if dev not in ret:
-                    ret[dev] = {}
-                ret[dev][type] = long(val)
-            elif line.count(' ') == 1:
-                type, val = line.split(' ')
-                ret[type] = long(val)
-            else:
-                raise ValueError(line)
-        return ret
-
     def get_usages(self):
         usages = Subsystem.get_usages(self)
-        for name, cls in self.STATS.iteritems():
-            if cls is not dict: continue
-
-            path = self.param2path[name]
-            usages[name] = self.parse_blkio_stat(path)
 
         # For convenience
         n_reads = n_writes = 0L
@@ -259,15 +244,6 @@ class SubsystemBlkio(Subsystem):
         usages['write'] = n_writes
             
         return usages
-
-    def get_configs(self):
-        configs = Subsystem.get_configs(self)
-        for name, cls in self.CONFIGS.iteritems():
-            if cls is not dict: continue
-
-            path = self.param2path[name]
-            configs[name] = self.parse_blkio_stat(path)
-        return configs
 
 class SubsystemFreezer(Subsystem):
     NAME = 'freezer'
