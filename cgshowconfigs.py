@@ -44,7 +44,7 @@ def main():
 
     if options.target_subsystem not in cgroup.subsystem2path:
         print('No such subsystem: %s'%(options.target_subsystem,))
-        sys.exit(1)
+        sys.exit(3)
 
     target_path = cgroup.subsystem2path[options.target_subsystem]
     mount_point = target_path
