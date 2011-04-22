@@ -1,0 +1,66 @@
+#!/usr/bin/python
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#
+# See the COPYING file for license information.
+#
+# Copyright (c) 2011 peo3 <peo314159265@gmail.com>
+#
+# This script is a python implementation of 
+# linux-2.6/Documentation/cgroups/cgroup_event_listener.c
+
+import sys
+import os, os.path
+import struct
+
+from cgutils import linux
+
+def main():
+    if len(sys.argv) != 3:
+        print('Usage: cgroup_event_listener <control_file> <threshold>')
+	sys.exit(1)
+
+    target_file = sys.argv[1]
+    threshold = sys.argv[2]
+
+    # Don't write in one call chain to keep the fd open
+    cf = open(target_file)
+    cfd = cf.fileno()
+
+    event_file = os.path.join(os.path.dirname(target_file),
+                              'cgroup.event_control')
+    ecf = open(event_file, 'w')
+    ecfd = ecf.fileno()
+
+    efd = linux.eventfd(0, 0)
+
+    line = "%d %d %s\0"%(efd,cfd,threshold)
+    os.write(ecfd, line)
+
+    while True:
+        ret = os.read(efd, 64/8)
+        ret = struct.unpack('Q', ret)
+        #if ret == -1:
+        #    print('Cannot read from eventfd')
+        #    sys.exit(1)
+        if not os.path.exists(event_file):
+            print('The cgroup seems to have removed.')
+            sys.exit(0)
+        print("%s %s: crossed"%(target_file,threshold))
+
+    #linux.close(efd)
+
+if __name__ == "__main__":
+    main()
