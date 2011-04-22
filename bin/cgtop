@@ -36,6 +36,11 @@ from cgutils.version import VERSION
 
 class CGTopStats:
     SUBSYSTEMS = ['cpuacct', 'blkio', 'memory']
+    FILTERS   = {
+        'cpuacct': ['stat'],
+        'blkio':   ['io_service_bytes'],
+        'memory':  ['usage_in_bytes', 'memsw.usage_in_bytes', 'stat'],
+        }
 
     def __init__(self, options):
         self.options = options
@@ -50,7 +55,7 @@ class CGTopStats:
             if name not in cgroup.subsystem2path:
                 continue
             mount_point = cgroup.subsystem2path[name]
-            root_cgroup = cgroup.scan_directory_recursively(name, mount_point)
+            root_cgroup = cgroup.scan_directory_recursively(name, mount_point, self.FILTERS[name])
             cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
         self.cgroups = cgroups
 

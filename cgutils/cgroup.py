@@ -127,11 +127,24 @@ class Subsystem(object):
         SimpleStat: SimpleStat.parse,
         BlkioStat:  BlkioStat.parse,
     }
-    def __init__(self, path):
+    def __init__(self, path, filters=None):
         self.path = path
+        self.filters = filters
 
+        if self.filters:
+            self.configs = {}
+            self.stats   = {}
+            for f in self.filters:
+                if f in self.CONFIGS:
+                    self.configs[f] = self.CONFIGS[f]
+                elif f in self.STATS:
+                    self.stats[f] = self.STATS[f]
+        else:
+            self.configs = self.CONFIGS
+            self.stats   = self.STATS
+        
         self.param2path = {}
-        for param in self.CONFIGS.keys()+self.STATS.keys():
+        for param in self.configs.keys()+self.stats.keys():
             attrname = 'path_'+param.replace('.', '_')
             _path = os.path.join(self.path, self.NAME+'.'+param)
             setattr(self, attrname, _path)
@@ -139,7 +152,7 @@ class Subsystem(object):
 
     def get_configs(self):
         configs = {}
-        for config, default in self.CONFIGS.iteritems():
+        for config, default in self.configs.iteritems():
             cls = default.__class__
             path = self.param2path[config]
             configs[config] = self.PARSERS[cls](path)
@@ -150,7 +163,7 @@ class Subsystem(object):
 
     def get_usages(self):
         usages = {}
-        for stat, cls in self.STATS.iteritems():
+        for stat, cls in self.stats.iteritems():
             path = self.param2path[stat]
             usages[stat] = self.PARSERS[cls](path)
         return usages
@@ -383,23 +396,23 @@ class CGroup(object):
     def get_cmd(self, pid):
         return readfile('/proc/%d/comm'%(pid,))[:-1]
 
-def scan_directory_recursively0(subsystem, abspath, mount_point):
+def scan_directory_recursively0(subsystem, abspath, mount_point, filters):
     relpath = abspath.replace(mount_point, '')
     cgroup = CGroup(mount_point, relpath,
-                    subsystem_name2class[subsystem](abspath))
+                    subsystem_name2class[subsystem](abspath, filters))
 
     _childs = []
     for _file in os.listdir(abspath):
         child_abspath = os.path.join(abspath,_file)
         if os.path.isdir(child_abspath):
             child = scan_directory_recursively0(subsystem, child_abspath,
-                                               mount_point)
+                                                mount_point, filters)
             _childs.append(child)
     cgroup.childs.extend(_childs)
     return cgroup
 
-def scan_directory_recursively(subsystem, mount_point):
-    return scan_directory_recursively0(subsystem, mount_point, mount_point)
+def scan_directory_recursively(subsystem, mount_point, filters=None):
+    return scan_directory_recursively0(subsystem, mount_point, mount_point, filters)
 
 def walk_cgroups(cgroup, action, opaque):
     action(cgroup, opaque)
