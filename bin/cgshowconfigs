@@ -3,8 +3,8 @@
 import sys
 import optparse
 
-import cgroup
-import formatter
+from cgutils import cgroup
+from cgutils import formatter
 
 def print_configs(_cgroup, show_default):
     configs = _cgroup.get_configs()

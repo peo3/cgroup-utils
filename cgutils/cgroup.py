@@ -20,7 +20,7 @@ from __future__ import with_statement
 import os, os.path
 import re
 
-import host
+from cgutils import host
 
 def readfile(filepath):
     with open(filepath) as f:

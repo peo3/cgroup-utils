@@ -21,9 +21,9 @@
 import sys
 import optparse
 
-import cgroup
-import host
-import formatter
+from cgutils import cgroup
+from cgutils import host
+from cgutils import formatter
 
 legends = {
     'cpuacct':"Consumed CPU time",

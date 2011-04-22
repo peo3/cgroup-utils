@@ -29,9 +29,9 @@ import optparse
 import time
 import errno
 
-import cgroup
-import host
-import formatter
+from cgutils import cgroup
+from cgutils import host
+from cgutils import formatter
 
 class CGTopStats:
     SUBSYSTEMS = ['cpuacct', 'blkio', 'memory']
