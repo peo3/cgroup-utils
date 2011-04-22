@@ -73,6 +73,20 @@ static PyMethodDef LinuxSyscalls[] = {
 PyMODINIT_FUNC
 initlinux(void)
 {
-	(void) Py_InitModule("cgutils.linux", LinuxSyscalls);
+	PyObject *module, *dict;
+	PyObject *val;
+
+	module = Py_InitModule("cgutils.linux", LinuxSyscalls);
+	dict   = PyModule_GetDict(module);
+
+	val = Py_BuildValue("i", EFD_CLOEXEC);
+	PyDict_SetItemString(dict, "EFD_CLOEXEC", val);
+	Py_DECREF(val);
+	val = Py_BuildValue("i", EFD_NONBLOCK);
+	PyDict_SetItemString(dict, "EFD_NONBLOCK", val);
+	Py_DECREF(val);
+	val = Py_BuildValue("i", EFD_SEMAPHORE);
+	PyDict_SetItemString(dict, "EFD_SEMAPHORE", val);
+	Py_DECREF(val);
 }
 
