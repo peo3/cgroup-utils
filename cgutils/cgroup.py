@@ -57,7 +57,7 @@ for line in lines:
     subsystem_names.append(name)
 
 #
-# Get path of enabled subsystems
+# Get pathes of enabled subsystems
 #
 subsystem2path = {}
 """
@@ -78,6 +78,10 @@ for line in lines:
         if opt in subsystem_names:
             subsystem2path[opt] = path
 
+"""
+user 2978976
+system 1037760
+"""
 class SimpleStat(dict):
     @staticmethod
     def parse(path):
@@ -87,6 +91,14 @@ class SimpleStat(dict):
             ret[name] = long(val)
         return ret
 
+"""
+8:0 Read 72650752
+8:0 Write 28090368
+8:0 Sync 28090368
+8:0 Async 72650752
+8:0 Total 100741120
+Total 100741120
+"""
 class BlkioStat(dict):
     @staticmethod
     def parse(path):
@@ -105,7 +117,7 @@ class BlkioStat(dict):
         return ret
 
 #
-# Sussystems and Cgroup classes
+# The base class of subsystems
 #
 class Subsystem(object):
     PARSERS = {
@@ -143,14 +155,19 @@ class Subsystem(object):
             usages[stat] = self.PARSERS[cls](path)
         return usages
 
+#
+# Classes of each subsystem
+#
 class SubsystemCpu(Subsystem):
     NAME = 'cpu'
     STATS = {}
+    _path_rt_period  = '/proc/sys/kernel/sched_rt_period_us'
+    _path_rt_runtime = '/proc/sys/kernel/sched_rt_runtime_us'
     CONFIGS = {
         'shares':        1024,
         # Are the default values correct?
-        'rt_period_us':  long(readfile('/proc/sys/kernel/sched_rt_period_us')),
-        'rt_runtime_us': long(readfile('/proc/sys/kernel/sched_rt_runtime_us')),
+        'rt_period_us':  long(readfile(_path_rt_period)),
+        'rt_runtime_us': long(readfile(_path_rt_runtime)),
     }
 
 class SubsystemCpuacct(Subsystem):
@@ -168,6 +185,7 @@ class SubsystemCpuset(Subsystem):
     }
     CONFIGS = {
         'cpu_exclusive': 0,
+        # str object something like '0', '0-1', and '0-1,3,4'
         'cpus': host.CPUInfo().get_online(),
         'mem_exclusive': 0,
         'mem_hardwall': 0,
@@ -175,6 +193,7 @@ class SubsystemCpuset(Subsystem):
         'memory_pressure_enabled': 0,
         'memory_spread_page': 0,
         'memory_spread_slab': 0,
+        # same as 'cpus'
         'mems': host.MemInfo().get_online(),
         'sched_load_balance': 1,
         'sched_relax_domain_level': -1,
@@ -300,8 +319,10 @@ class CGroup(object):
         self.__update_usages()
         self._update_n_procs()
 
-        self.path_release_agent = os.path.join(self.abspath, 'release_agent')
-        self.path_notify_on_release = os.path.join(self.abspath, 'notify_on_release')
+        self.path_release_agent = os.path.join(self.abspath,
+                                               'release_agent')
+        self.path_notify_on_release = os.path.join(self.abspath,
+                                                   'notify_on_release')
 
 
     def update_pids(self):
@@ -321,6 +342,7 @@ class CGroup(object):
 
         def calc_delta_recursive(usage, _prev, delta):
             for k, v in usage.iteritems():
+                # prev value may not be set, so have to check the existence
                 if v.__class__ is not dict:
                     if k in _prev:
                         delta[k] = v - _prev[k]
@@ -354,6 +376,7 @@ class CGroup(object):
         return configs
 
     def is_kthread(self, pid):
+        # XXX: Better way desired ;-/
         #return 'VmStk' not in readfile('/proc/%d/status'%(pid,))
         return len(readfile('/proc/%d/coredump_filter'%(pid,))) == 0
 
