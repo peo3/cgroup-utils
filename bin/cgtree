@@ -24,6 +24,7 @@ import optparse
 from cgutils import cgroup
 from cgutils import host
 from cgutils import formatter
+from cgutils.version import VERSION
 
 legends = {
     'cpuacct':"Consumed CPU time",
@@ -121,7 +122,7 @@ def print_cgroup(subsys_name, _cgroup, show_pid, verbose):
 def main():
     DEFAULT_SUBSYSTEM = 'cpu'
 
-    parser = optparse.OptionParser()
+    parser = optparse.OptionParser(version='cgshowconfigs '+VERSION)
     parser.add_option('-o', action='store', type='string',
                       dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
                       help='Specify a subsystem [cpu]')
