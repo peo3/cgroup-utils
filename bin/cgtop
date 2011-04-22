@@ -50,7 +50,7 @@ class CGTopStats:
             if name not in cgroup.subsystem2path:
                 continue
             mount_point = cgroup.subsystem2path[name]
-            root_cgroup = cgroup.scan_directory_recursively(name, mount_point, mount_point)
+            root_cgroup = cgroup.scan_directory_recursively(name, mount_point)
             cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
         self.cgroups = cgroups
 

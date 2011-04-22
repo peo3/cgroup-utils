@@ -383,7 +383,7 @@ class CGroup(object):
     def get_cmd(self, pid):
         return readfile('/proc/%d/comm'%(pid,))[:-1]
 
-def scan_directory_recursively(subsystem, abspath, mount_point):
+def scan_directory_recursively0(subsystem, abspath, mount_point):
     relpath = abspath.replace(mount_point, '')
     cgroup = CGroup(mount_point, relpath,
                     subsystem_name2class[subsystem](abspath))
@@ -392,10 +392,14 @@ def scan_directory_recursively(subsystem, abspath, mount_point):
     for _file in os.listdir(abspath):
         child_abspath = os.path.join(abspath,_file)
         if os.path.isdir(child_abspath):
-            child = scan_directory_recursively(subsystem, child_abspath, mount_point)
+            child = scan_directory_recursively0(subsystem, child_abspath,
+                                               mount_point)
             _childs.append(child)
     cgroup.childs.extend(_childs)
     return cgroup
+
+def scan_directory_recursively(subsystem, mount_point):
+    return scan_directory_recursively0(subsystem, mount_point, mount_point)
 
 def walk_cgroups(cgroup, action, opaque):
     action(cgroup, opaque)
