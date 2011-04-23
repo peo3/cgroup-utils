@@ -33,15 +33,9 @@ legends = {
     'freezer':"State",
     }
 
-def format_cpu(usages):
-    return None
-
 def format_cpuacct(usages):
     n = formatter.max_width_time
     return formatter.usec2str(usages['usage']).rjust(n)
-
-def format_cpuset(usages):
-    return None
 
 def format_memory(usages):
     vals = [usages['total'],usages['rss'],usages['swap']]
@@ -56,14 +50,19 @@ def format_blkio(usages):
 def format_freezer(usages):
     return usages['state']
 
+def format_none(usages):
+    return None
+
 formatters = {
-    'cpu':    format_cpu,
+    'cpu':    format_none,
     'cpuacct':format_cpuacct,
-    'cpuset': format_cpuset,
+    'cpuset': format_none,
     'memory': format_memory,
     'blkio':  format_blkio,
     'freezer':format_freezer,
-    }
+    'net_cls':format_none,
+    'devices':format_none,
+}
 
 def get_cpuset_global_status():
     cpuinfo = host.CPUInfo()
@@ -86,6 +85,8 @@ get_global_status = {
     'memory': get_memory_global_status,
     'blkio':  lambda: None,
     'freezer':lambda: None,
+    'net_cls':lambda: None,
+    'devices':lambda: None,
     }
 
 def print_cgroup(subsys_name, _cgroup, show_pid, verbose):

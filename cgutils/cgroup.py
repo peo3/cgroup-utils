@@ -146,6 +146,31 @@ class BlkioStat(dict):
                 raise EnvironmentError(line)
         return ret
 
+"""
+a *:* rwm
+
+c 136:* rwm
+c 1:3 rwm
+c 1:7 rwm
+c 1:5 rwm
+c 1:8 rwm
+c 1:9 rwm
+c 5:2 rwm
+c 10:232 rwm
+c 254:0 rwm
+c 10:228 rwm
+c 10:200 rwm
+c 251:0 rwm
+c 251:1 rwm
+c 251:2 rwm
+c 251:3 rwm
+c 251:4 rwm
+"""
+class DevicesStat(list):
+    @staticmethod
+    def parse(path):
+        return readfile(path).split('\n')[:-1]
+
 #
 # The base class of subsystems
 #
@@ -156,6 +181,7 @@ class Subsystem(object):
         str:  lambda path: readfile(path).strip(),
         SimpleStat: SimpleStat.parse,
         BlkioStat:  BlkioStat.parse,
+        DevicesStat:  DevicesStat.parse,
     }
     def __init__(self, path, filters=None):
         self.path = path
@@ -321,6 +347,20 @@ class SubsystemFreezer(Subsystem):
             # Root group does not have the file
             return {'state': ''}
 
+class SubsystemNetCls(Subsystem):
+    NAME = 'net_cls'
+    STATS = {}
+    CONFIGS = {
+        'classid': 0,
+    }
+
+class SubsystemDevices(Subsystem):
+    NAME = 'devices'
+    STATS = {}
+    CONFIGS = {
+        'list': DevicesStat(['a *:* rwm']),
+    }
+
 subsystem_name2class = {
     'cpu':SubsystemCpu,
     'cpuacct':SubsystemCpuacct,
@@ -328,6 +368,8 @@ subsystem_name2class = {
     'memory':SubsystemMemory,
     'blkio':SubsystemBlkio,
     'freezer':SubsystemFreezer,
+    'net_cls':SubsystemNetCls,
+    'devices':SubsystemDevices,
 }
 subsystem_class2name = {}
 for name, _class in subsystem_name2class.iteritems():
