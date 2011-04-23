@@ -271,10 +271,13 @@ class SubsystemCpuset(Subsystem):
 class SubsystemMemory(Subsystem):
     NAME = 'memory'
     STATS = {
+        'failcnt': long,
         'usage_in_bytes': long,
+        'max_usage_in_bytes': long,
+        'memsw.failcnt': long,
+        'memsw.max_usage_in_bytes': long,
         'memsw.usage_in_bytes': long,
         'stat': SimpleStat,
-        'memsw.failcnt': long,
     }
     MAX_ULONGLONG = 2**63-1
     CONFIGS = {
