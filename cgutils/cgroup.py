@@ -26,7 +26,7 @@ def readfile(filepath):
     with open(filepath) as f:
         return f.read()
 
-class SubsystemStatus(object):
+class SubsystemStatus(dict):
     def __init__(self):
         self.update()
 
@@ -57,12 +57,12 @@ class SubsystemStatus(object):
                 enabled = True
             else:
                 enabled = False
-            if name not in self.status:
-                self.status[name] = {}
-            self.status[name]['name'] = name
-            self.status[name]['hierarchy'] = hierarchy
-            self.status[name]['num_cgroups'] = n_cgroups
-            self.status[name]['enabled'] = enabled
+            if name not in self:
+                self[name] = {}
+            self[name]['name'] = name
+            self[name]['hierarchy'] = hierarchy
+            self[name]['num_cgroups'] = n_cgroups
+            self[name]['enabled'] = enabled
 
     def _parse_proc_mount(self):
         """Parse /proc/mounts"""
@@ -83,7 +83,7 @@ class SubsystemStatus(object):
             opts = items[3].split(',')
 
             for opt in opts:
-                if opt in self.status:
+                if opt in self:
                     self.paths[opt] = path
 
     def _update(self):
@@ -91,16 +91,16 @@ class SubsystemStatus(object):
         self._parse_proc_mount()
 
     def update(self):
-        self.status = {}
+        self.clear()
         self.paths = {}
         self._update()
 
     def get_all(self):
-        return self.status.keys()
+        return self.keys()
 
     def get_available(self):
-        return [name for name in self.status.keys()
-                if self.status[name]['enabled'] ]
+        return [name for name in self.keys()
+                if self[name]['enabled'] ]
 
     def get_enabled(self):
         return self.paths.keys()
