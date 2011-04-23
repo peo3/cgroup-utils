@@ -26,57 +26,87 @@ def readfile(filepath):
     with open(filepath) as f:
         return f.read()
 
-#
-# Get enabled cgroup subsystems
-#
-subsystem_names = []
-"""
-#subsys_name	hierarchy	num_cgroups	enabled
-cpuset	0	1	1
-ns	0	1	1
-cpu	1	10	1
-cpuacct	0	1	1
-memory	0	1	1
-devices	0	1	1
-freezer	0	1	1
-net_cls	0	1	1
-"""
-_p = re.compile('^(?P<name>\w+)\s+(?P<hier>\d+)\s+(?P<n>\d+)\s+(?P<enabled>[01])')
-lines = readfile('/proc/cgroups').split('\n')
-for line in lines:
-    m = _p.match(line)
-    if m is None: continue
+class SubsystemStatus(object):
+    def __init__(self):
+        self.update()
 
-    name = m.group('name')
-    hierarchy = int(m.group('hier'))
-    n_cgroups = int(m.group('n'))
-    if m.group('enabled') == '1':
-        enabled = True
-    else:
-        enabled = False
-    subsystem_names.append(name)
+    def _parse_proc_cgroups(self):
+        """Parse /proc/cgroups"""
 
-#
-# Get pathes of enabled subsystems
-#
-subsystem2path = {}
-"""
-cgroup /dev/cgroup/cpu cgroup rw,relatime,cpuacct,cpu,release_agent=/usr/local/sbin/cgroup_clean 0 0
-cgroup /dev/cgroup/memory cgroup rw,relatime,memory 0 0
-cgroup /dev/cgroup/blkio cgroup rw,relatime,blkio 0 0
-cgroup /dev/cgroup/freezer cgroup rw,relatime,freezer 0 0
-"""
-lines = readfile('/proc/mounts').split('\n')
-for line in lines:
-    if 'cgroup' not in line: continue
+        """
+        #subsys_name	hierarchy	num_cgroups	enabled
+        cpuset	0	1	1
+        ns	0	1	1
+        cpu	1	10	1
+        cpuacct	0	1	1
+        memory	0	1	1
+        devices	0	1	1
+        freezer	0	1	1
+        net_cls	0	1	1
+        """
+        p = re.compile('^(?P<name>\w+)\s+(?P<hier>\d+)\s+(?P<n>\d+)\s+(?P<enabled>[01])')
+        lines = readfile('/proc/cgroups').split('\n')
+        for line in lines:
+            m = p.match(line)
+            if m is None: continue
 
-    items = line.split(' ')
-    path = items[1]
-    opts = items[3].split(',')
+            name = m.group('name')
+            hierarchy = int(m.group('hier'))
+            n_cgroups = int(m.group('n'))
+            if m.group('enabled') == '1':
+                enabled = True
+            else:
+                enabled = False
+            if name not in self.status:
+                self.status[name] = {}
+            self.status[name]['name'] = name
+            self.status[name]['hierarchy'] = hierarchy
+            self.status[name]['num_cgroups'] = n_cgroups
+            self.status[name]['enabled'] = enabled
 
-    for opt in opts:
-        if opt in subsystem_names:
-            subsystem2path[opt] = path
+    def _parse_proc_mount(self):
+        """Parse /proc/mounts"""
+
+        """
+        cgroup /dev/cgroup/cpu cgroup rw,relatime,cpuacct,cpu,release_agent=/usr/local/sbin/cgroup_clean 0 0
+        cgroup /dev/cgroup/memory cgroup rw,relatime,memory 0 0
+        cgroup /dev/cgroup/blkio cgroup rw,relatime,blkio 0 0
+        cgroup /dev/cgroup/freezer cgroup rw,relatime,freezer 0 0
+        """
+
+        lines = readfile('/proc/mounts').split('\n')
+        for line in lines:
+            if 'cgroup' not in line: continue
+
+            items = line.split(' ')
+            path = items[1]
+            opts = items[3].split(',')
+
+            for opt in opts:
+                if opt in self.status:
+                    self.paths[opt] = path
+
+    def _update(self):
+        self._parse_proc_cgroups()
+        self._parse_proc_mount()
+
+    def update(self):
+        self.status = {}
+        self.paths = {}
+        self._update()
+
+    def get_all(self):
+        return self.status.keys()
+
+    def get_available(self):
+        return [name for name in self.status.keys()
+                if self.status[name]['enabled'] ]
+
+    def get_enabled(self):
+        return self.paths.keys()
+
+    def get_path(self, subsys):
+        return self.paths[subsys]
 
 """
 user 2978976

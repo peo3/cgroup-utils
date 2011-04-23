@@ -137,11 +137,22 @@ def main():
     if options.debug:
         print options
 
-    if options.target_subsystem not in cgroup.subsystem2path:
-        print('No such subsystem: %s'%(options.target_subsystem,))
+    target = options.target_subsystem
+    subsys_status = cgroup.SubsystemStatus()
+
+    if target not in subsys_status.get_all():
+        print >>sys.stderr, 'No such subsystem: %s'%(target,)
+        sys.exit(1)
+
+    if target not in subsys_status.get_available():
+        print >>sys.stderr, 'Disabled in the kernel: %s'%(target,)
         sys.exit(3)
-    target_path = cgroup.subsystem2path[options.target_subsystem]
-    mount_point = target_path
+
+    if target not in subsys_status.get_enabled():
+        print >>sys.stderr, 'Not enabled in the system: %s'%(target,)
+        sys.exit(3)
+
+    mount_point = subsys_status.get_path(target)
 
     FILTERS   = {
         'cpu':     [],
@@ -152,21 +163,21 @@ def main():
 	'freezer': [],
 	}
     root_cgroup = cgroup.scan_directory_recursively(
-                      options.target_subsystem, mount_point)
+                      target, mount_point)
 
     def print_cgroups_recursively(_cgroup):
         if options.debug:
             print(_cgroup)
 
-        print_cgroup(options.target_subsystem, _cgroup, options.show_pid, options.verbose)
+        print_cgroup(target, _cgroup, options.show_pid, options.verbose)
         for child in _cgroup.childs:
             print_cgroups_recursively(child)
 
-    global_status = get_global_status[options.target_subsystem]()
+    global_status = get_global_status[target]()
     if global_status is not None:
         print('# '+global_status)
-    if options.target_subsystem in legends:
-        legend = legends[options.target_subsystem]
+    if target in legends:
+        legend = legends[target]
         print("# Legend: # of procs (%s)"%(legend,))
     else:
         print('# Legend: # of procs')
