@@ -75,6 +75,19 @@ def build_indent(n):
     s += ' '*(INDENT_SIZE-1)+'+'
     return s
 
+DECORATER = {
+    'red':       lambda s: '\033[31m'+s+'\033[0m',
+    'bold':      lambda s: '\033[1m'+s+'\033[0m',
+    'lightblue': lambda s: '\033[95m'+s+'\033[0m',
+    'underline': lambda s: '\033[4m'+s+'\033[0m',
+    'kthread':       lambda s: '['+s+']',
+    'cgroup':        lambda s: DECORATER['bold'](DECORATER['red'](s)),
+    'groupleader':   lambda s: DECORATER['lightblue'](s),
+    'sessionleader': lambda s: DECORATER['underline'](s),
+}
+def decorate(string, type):
+    return DECORATER[type](string)
+
 def print_process_tree(indent, pids, options):
     """
     tops = [1,2,3]
@@ -98,21 +111,15 @@ def print_process_tree(indent, pids, options):
     def print_proc(proc, indent):
         s = build_indent(indent)
         if proc.is_kthread():
-            s += '['+proc.name+']'
+            s += decorate(proc.name, 'kthread')
         else:
+            name = proc.name
             if options.color:
-                colored = False
                 if proc.is_group_leader():
-                    colored = True
-                    s += '\033[95m'
+                    name = decorate(name, 'groupleader')
                 if proc.is_session_leader():
-                    s += '\033[4m'
-                    colored = True
-                s += proc.name
-                if colored:
-                    s += '\033[0m'
-            else:
-                s += proc.name
+                    name = decorate(name, 'sessionleader')
+            s += name
         if options.show_pid:
             s += "(%d)"%(proc.pid,)
         print(s)
@@ -133,7 +140,7 @@ def print_cgroup(subsys_name, cg, options):
         return
     indent = build_indent(INDENT_SIZE*cg.depth)
     if options.color:
-        print("%s\033[1m\033[31m%s\033[0m"%(indent, cg.name))
+        print("%s%s"%(indent, decorate(cg.name, 'cgroup')))
     else:
         print("%s%s"%(indent, cg.name))
     print_process_tree(INDENT_SIZE*cg.depth+INDENT_SIZE, cg.pids,
