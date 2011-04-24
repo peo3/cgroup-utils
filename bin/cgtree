@@ -98,6 +98,8 @@ def print_process_tree(indent, pids, options):
     rels = {}
     for pid in pids:
         proc = Process(pid)
+        if options.hide_kthread and proc.is_kthread():
+            continue
         procs.append(proc)
         ppids.append(proc.ppid)
         if proc.ppid not in rels:
@@ -156,6 +158,9 @@ def main():
     parser.add_option('-e', '--hide-empty', action='store_true',
                       dest='hide_empty', default=False,
                       help='Hide empty groups [False]')
+    parser.add_option('-k', '--hide-kthread', action='store_true',
+                      dest='hide_kthread', default=False,
+                      help='Hide kernel threads [False]')
     parser.add_option('--color', action='store_true',
                       dest='color', default=False,
                       help='Coloring [False]')
