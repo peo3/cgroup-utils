@@ -33,7 +33,22 @@ def readfile(filepath):
         return f.read()
 
 INDENT_SIZE=4
-INDENT=' '*INDENT_SIZE
+
+def build_indent(indents):
+    if len(indents) == 0:
+        return ''
+    s = ''
+    for n in range(len(indents)):
+        indent = indents[n]
+        if indent == 'cont' and n == len(indents)-1:
+            s += ' '*(INDENT_SIZE-1)+'+'
+        elif indent == 'cont':
+            s += ' '*(INDENT_SIZE-1)+'|'
+        elif indent == 'last' and n == len(indents)-1:
+            s += ' '*(INDENT_SIZE-1)+'`'
+        else:
+            s += ' '*INDENT_SIZE
+    return s
 
 class Process(object):
     def __init__(self, pid):
@@ -67,14 +82,6 @@ class Process(object):
     def is_session_leader(self):
         return self.pid == self.sid
 
-def build_indent(n):
-    if n == 0:
-        return ''
-    s = ''
-    s += (' '*(INDENT_SIZE-1)+'|')*((n-1)/INDENT_SIZE)
-    s += ' '*(INDENT_SIZE-1)+'+'
-    return s
-
 DECORATER = {
     'red':       lambda s: '\033[31m'+s+'\033[0m',
     'bold':      lambda s: '\033[1m'+s+'\033[0m',
@@ -88,7 +95,25 @@ DECORATER = {
 def decorate(string, type):
     return DECORATER[type](string)
 
-def print_process_tree(indent, pids, options):
+def print_process(proc, indents, options):
+    s = build_indent(indents)
+    if proc.is_kthread():
+        s += decorate(proc.name, 'kthread')
+    else:
+        name = proc.name
+        if options.color:
+            if proc.is_group_leader():
+                name = decorate(name, 'groupleader')
+            if proc.is_session_leader():
+                name = decorate(name, 'sessionleader')
+        s += name
+    if options.show_pid:
+        s += "(%d)"%(proc.pid,)
+    if options.debug:
+        s += str(indents)
+    print(s)
+
+def print_process_tree(indents, pids, options):
     """
     tops = [1,2,3]
     rels = {1: [4,5], 2: [6,7], 3: [], 4: []}
@@ -110,43 +135,32 @@ def print_process_tree(indent, pids, options):
     if len(tops) == 0:
         tops = procs
 
-    def print_proc(proc, indent):
-        s = build_indent(indent)
-        if proc.is_kthread():
-            s += decorate(proc.name, 'kthread')
-        else:
-            name = proc.name
-            if options.color:
-                if proc.is_group_leader():
-                    name = decorate(name, 'groupleader')
-                if proc.is_session_leader():
-                    name = decorate(name, 'sessionleader')
-            s += name
-        if options.show_pid:
-            s += "(%d)"%(proc.pid,)
-        print(s)
-
-    def print_recursively(proc_list, indent):
+    def print_recursively(proc_list, _indents):
         for proc in proc_list:
-            print_proc(proc, indent)
+            if proc.pid == proc_list[-1].pid:
+                __indents = _indents+['last']
+            else:
+                __indents = _indents+['cont']
+
+            print_process(proc, __indents, options)
+
             if proc.pid in rels:
-                print_recursively(rels[proc.pid], indent+INDENT_SIZE)
+                print_recursively(rels[proc.pid], __indents)
 
-    print_recursively(tops, indent)
+    print_recursively(tops, indents)
 
-def print_cgroup(cg, options):
+def print_cgroup(cg, indents, options):
     cg.update_pids()
     if options.debug:
         print(cg.pids)
     if options.hide_empty and len(cg.pids) == 0:
         return
-    indent = build_indent(INDENT_SIZE*cg.depth)
+    indent_str = build_indent(indents)
     if options.color:
-        print("%s%s"%(indent, decorate(cg.name, 'cgroup')))
+        print("%s%s"%(indent_str, decorate(cg.name, 'cgroup')))
     else:
-        print("%s%s"%(indent, cg.name))
-    print_process_tree(INDENT_SIZE*cg.depth+INDENT_SIZE, cg.pids,
-                       options)
+        print("%s%s"%(indent_str, cg.name))
+    print_process_tree(indents, cg.pids, options)
 
 def main():
     DEFAULT_SUBSYSTEM = 'cpu'
@@ -192,15 +206,19 @@ def main():
 
     root_cgroup = cgroup.scan_directory_recursively(target, mount_point)
 
-    def print_cgroups_recursively(cg):
+    def print_cgroups_recursively(cg, indents):
         if options.debug:
             print(cg)
 
-        print_cgroup(cg, options)
+        print_cgroup(cg, indents, options)
         for child in cg.childs:
-            print_cgroups_recursively(child)
+            if child == cg.childs[-1]:
+                _indents = indents+['last']
+            else:
+                _indents = indents+['cont']
+            print_cgroups_recursively(child, _indents)
 
-    print_cgroups_recursively(root_cgroup)
+    print_cgroups_recursively(root_cgroup, [])
 
 if __name__ == "__main__":
     main()
