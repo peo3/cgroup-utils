@@ -35,27 +35,37 @@ def readfile(filepath):
 INDENT_SIZE=4
 INDENT=' '*INDENT_SIZE
 
-def get_fullname(pid):
-    cmdline = readfile('/proc/%d/cmdline'%(pid,))
-    if '\0' in cmdline:
-        args = cmdline.split('\0')
-    else:
-        args = cmdline.split(' ')
-    name = os.path.basename(args[0]).rstrip(':')
-    if name in ['python', 'ruby', 'perl'] and len(args) >= 2:
-        name = os.path.basename(args[1])
-    return name
+class Process(object):
+    def __init__(self, pid):
+        self.pid = pid
 
-def parse_proc_stat(pid):
-    items = readfile('/proc/%d/stat'%(pid,)).split(' ')
-    #pid = int(items[0])
-    name = items[1].lstrip('(').rstrip(')')
-    ppid = int(items[3])
-    pgid = int(items[4])
-    sid  = int(items[5])
-    if pgid != 0:
-        name = get_fullname(pid)
-    return (pid, name, ppid, pgid, sid)
+        items = readfile('/proc/%d/stat'%(pid,)).split(' ')
+        self.name = items[1].lstrip('(').rstrip(')')
+        self.ppid = int(items[3])
+        self.pgid = int(items[4])
+        self.sid  = int(items[5])
+        if not self.is_kthread():
+            self.name = self._get_fullname()
+
+    def _get_fullname(self):
+        cmdline = readfile('/proc/%d/cmdline'%(self.pid,))
+        if '\0' in cmdline:
+            args = cmdline.split('\0')
+        else:
+            args = cmdline.split(' ')
+        name = os.path.basename(args[0]).rstrip(':')
+        if name in ['python', 'ruby', 'perl'] and len(args) >= 2:
+            name = os.path.basename(args[1])
+        return name
+
+    def is_kthread(self):
+        return self.pgid == 0 and self.sid == 0
+
+    def is_group_leader(self):
+        return self.pid == self.pgid
+
+    def is_session_leader(self):
+        return self.pid == self.sid
 
 def build_indent(n):
     if n == 0:
@@ -74,47 +84,44 @@ def print_process_tree(indent, pids, options):
     ppids = []
     rels = {}
     for pid in pids:
-        proc = parse_proc_stat(pid)
+        proc = Process(pid)
         procs.append(proc)
-        ppids.append(proc[2])
-        if proc[2] not in rels:
-            rels[proc[2]] = []
-        rels[proc[2]].append(proc)
+        ppids.append(proc.ppid)
+        if proc.ppid not in rels:
+            rels[proc.ppid] = []
+        rels[proc.ppid].append(proc)
     ppids = set(ppids)
-    tops = [proc for proc in procs
-            #if proc[0] in ppids and proc[2] not in pids]
-            if proc[2] not in pids]
+    tops = [proc for proc in procs if proc.ppid not in pids]
     if len(tops) == 0:
         tops = procs
 
     def print_proc(proc, indent):
         s = build_indent(indent)
-        if proc[3] == 0:
-            s += '['+proc[1]+']'
+        if proc.is_kthread():
+            s += '['+proc.name+']'
         else:
             if options.color:
                 colored = False
-                if proc[0] == proc[3]:
+                if proc.is_group_leader():
                     colored = True
                     s += '\033[95m'
-                if proc[0] == proc[4]:
+                if proc.is_session_leader():
                     s += '\033[4m'
                     colored = True
-                s += proc[1]
+                s += proc.name
                 if colored:
                     s += '\033[0m'
             else:
-                s += proc[1]
+                s += proc.name
         if options.show_pid:
-            s += "(%d)"%(proc[0],)
-            #s += "(%d)%s"%(proc[0],str(proc))
+            s += "(%d)"%(proc.pid,)
         print(s)
 
     def print_recursively(proc_list, indent):
         for proc in proc_list:
             print_proc(proc, indent)
-            if proc[0] in rels:
-                print_recursively(rels[proc[0]], indent+INDENT_SIZE)
+            if proc.pid in rels:
+                print_recursively(rels[proc.pid], indent+INDENT_SIZE)
 
     print_recursively(tops, indent)
 
