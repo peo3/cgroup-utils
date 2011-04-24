@@ -463,14 +463,6 @@ class CGroup(object):
         configs['notify_on_release'] = 0
         return configs
 
-    def is_kthread(self, pid):
-        # XXX: Better way desired ;-/
-        #return 'VmStk' not in readfile('/proc/%d/status'%(pid,))
-        return len(readfile('/proc/%d/coredump_filter'%(pid,))) == 0
-
-    def get_cmd(self, pid):
-        return readfile('/proc/%d/comm'%(pid,))[:-1]
-
 def scan_directory_recursively0(subsystem, abspath, mount_point, filters):
     relpath = abspath.replace(mount_point, '')
     cgroup = CGroup(mount_point, relpath,

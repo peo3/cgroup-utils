@@ -18,7 +18,9 @@
 #
 # Copyright (c) 2011 peo3 <peo314159265@gmail.com>
 
+from __future__ import with_statement
 import sys
+import os, os.path
 import optparse
 
 from cgutils import cgroup
@@ -26,99 +28,109 @@ from cgutils import host
 from cgutils import formatter
 from cgutils.version import VERSION
 
-legends = {
-    'cpuacct':"Consumed CPU time",
-    'memory': "TotalUsed, RSS, SwapUsed",
-    'blkio':  "Read, Write",
-    'freezer':"State",
-    }
+def readfile(filepath):
+    with open(filepath) as f:
+        return f.read()
 
-def format_cpuacct(usages):
-    n = formatter.max_width_time
-    return formatter.usec2str(usages['usage']).rjust(n)
+INDENT_SIZE=4
+INDENT=' '*INDENT_SIZE
 
-def format_memory(usages):
-    vals = [usages['total'],usages['rss'],usages['swap']]
-    to_s = lambda v: formatter.byte2str(v).rjust(formatter.max_width_memory)
-    return ','.join([to_s(val) for val in vals])
-
-def format_blkio(usages):
-    vals = [usages['read'],usages['write']]
-    to_s = lambda v: formatter.byte2str(v).rjust(formatter.max_width_memory)
-    return ','.join([to_s(val) for val in vals])
-
-def format_freezer(usages):
-    return usages['state']
-
-def format_none(usages):
-    return None
-
-formatters = {
-    'cpu':    format_none,
-    'cpuacct':format_cpuacct,
-    'cpuset': format_none,
-    'memory': format_memory,
-    'blkio':  format_blkio,
-    'freezer':format_freezer,
-    'net_cls':format_none,
-    'devices':format_none,
-}
-
-def get_cpuset_global_status():
-    cpuinfo = host.CPUInfo()
-    meminfo = host.MemInfo()
-    return "Online CPU %s, Online Node %s"%(cpuinfo.get_online(),
-                                            meminfo.get_online())
-
-def get_memory_global_status():
-    meminfo = host.MemInfo()
-    meminfo.update()
-    return "Total=%s, Used(w/o buffer/cache)=%s, SwapUsed=%s"% \
-           (formatter.byte2str(meminfo['MemTotal']),
-            formatter.byte2str(meminfo['MemUsed']),
-            formatter.byte2str(meminfo['SwapUsed']))
-
-get_global_status = {
-    'cpu':    lambda: None,
-    'cpuacct':lambda: None,
-    'cpuset': get_cpuset_global_status,
-    'memory': get_memory_global_status,
-    'blkio':  lambda: None,
-    'freezer':lambda: None,
-    'net_cls':lambda: None,
-    'devices':lambda: None,
-    }
-
-def print_cgroup(subsys_name, _cgroup, show_pid, verbose):
-    status = formatters[subsys_name](_cgroup.usages)
-
-    _cgroup.update_pids()
-    if show_pid:
-        cmds = sorted(["%s(%d)"%(_cgroup.get_cmd(pid),pid)
-                       for pid in _cgroup.pids
-                       if not _cgroup.is_kthread(pid)])
+def get_fullname(pid):
+    cmdline = readfile('/proc/%d/cmdline'%(pid,))
+    if '\0' in cmdline:
+        args = cmdline.split('\0')
     else:
-        cmds = sorted([_cgroup.get_cmd(pid)
-                       for pid in _cgroup.pids
-                       if not _cgroup.is_kthread(pid)])
-    if verbose:
-        procs = cmds
-        s = "%s%s: %s"%('  '*_cgroup.depth, _cgroup.name, cmds)
-    else:
-        procs = ('%d procs'%(len(cmds),)).rjust(10)
-        proc_indent = 12
-        status_indent = 24
-        s = "%s%s:"%('  '*_cgroup.depth, _cgroup.name)
-        indent = proc_indent-len(s)
-        indent = min(indent, 0)
-        s = "%s%s%s"%(s,' '*indent, procs)
-        indent = status_indent-len(s)
-        indent = min(indent, 0)
-        if status is None:
-            s = "%s%s"%(s,' '*indent)
+        args = cmdline.split(' ')
+    name = os.path.basename(args[0]).rstrip(':')
+    if name in ['python', 'ruby', 'perl'] and len(args) >= 2:
+        name = os.path.basename(args[1])
+    return name
+
+def parse_proc_stat(pid):
+    items = readfile('/proc/%d/stat'%(pid,)).split(' ')
+    #pid = int(items[0])
+    name = items[1].lstrip('(').rstrip(')')
+    ppid = int(items[3])
+    pgid = int(items[4])
+    sid  = int(items[5])
+    if pgid != 0:
+        name = get_fullname(pid)
+    return (pid, name, ppid, pgid, sid)
+
+def build_indent(n):
+    if n == 0:
+        return ''
+    s = ''
+    s += (' '*(INDENT_SIZE-1)+'|')*((n-1)/INDENT_SIZE)
+    s += ' '*(INDENT_SIZE-1)+'+'
+    return s
+
+def print_process_tree(indent, pids, options):
+    """
+    tops = [1,2,3]
+    rels = {1: [4,5], 2: [6,7], 3: [], 4: []}
+    """
+    procs = []
+    ppids = []
+    rels = {}
+    for pid in pids:
+        proc = parse_proc_stat(pid)
+        procs.append(proc)
+        ppids.append(proc[2])
+        if proc[2] not in rels:
+            rels[proc[2]] = []
+        rels[proc[2]].append(proc)
+    ppids = set(ppids)
+    tops = [proc for proc in procs
+            #if proc[0] in ppids and proc[2] not in pids]
+            if proc[2] not in pids]
+    if len(tops) == 0:
+        tops = procs
+
+    def print_proc(proc, indent):
+        s = build_indent(indent)
+        if proc[3] == 0:
+            s += '['+proc[1]+']'
         else:
-            s = "%s%s(%s)"%(s,' '*indent, status)
-    print(s)
+            if options.color:
+                colored = False
+                if proc[0] == proc[3]:
+                    colored = True
+                    s += '\033[95m'
+                if proc[0] == proc[4]:
+                    s += '\033[4m'
+                    colored = True
+                s += proc[1]
+                if colored:
+                    s += '\033[0m'
+            else:
+                s += proc[1]
+        if options.show_pid:
+            s += "(%d)"%(proc[0],)
+            #s += "(%d)%s"%(proc[0],str(proc))
+        print(s)
+
+    def print_recursively(proc_list, indent):
+        for proc in proc_list:
+            print_proc(proc, indent)
+            if proc[0] in rels:
+                print_recursively(rels[proc[0]], indent+INDENT_SIZE)
+
+    print_recursively(tops, indent)
+
+def print_cgroup(subsys_name, cg, options):
+    cg.update_pids()
+    if options.debug:
+        print(cg.pids)
+    if options.hide_empty and len(cg.pids) == 0:
+        return
+    indent = build_indent(INDENT_SIZE*cg.depth)
+    if options.color:
+        print("%s\033[1m\033[31m%s\033[0m"%(indent, cg.name))
+    else:
+        print("%s%s"%(indent, cg.name))
+    print_process_tree(INDENT_SIZE*cg.depth+INDENT_SIZE, cg.pids,
+                       options)
 
 def main():
     DEFAULT_SUBSYSTEM = 'cpu'
@@ -127,8 +139,12 @@ def main():
     parser.add_option('-o', action='store', type='string',
                       dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
                       help='Specify a subsystem [cpu]')
-    parser.add_option('-v', '--verbose', action='store_true', dest='verbose',
-                      default=False, help='Show detailed messages')
+    parser.add_option('-e', '--hide-empty', action='store_true',
+                      dest='hide_empty', default=False,
+                      help='Hide empty groups [False]')
+    parser.add_option('--color', action='store_true',
+                      dest='color', default=False,
+                      help='Coloring [False]')
     parser.add_option('--debug', action='store_true', dest='debug',
                       default=False, help='Show debug messages [False]')
     parser.add_option('-p', '--show-pid', action='store_true',
@@ -155,33 +171,16 @@ def main():
 
     mount_point = subsys_status.get_path(target)
 
-    FILTERS   = {
-        'cpu':     [],
-        'cpuacct': ['stat'],
-	'cpuset':  [],
-        'blkio':   ['io_service_bytes'],
-	'memory':  ['usage_in_bytes', 'memsw.usage_in_bytes', 'stat'],
-	'freezer': [],
-	}
-    root_cgroup = cgroup.scan_directory_recursively(
-                      target, mount_point)
+    root_cgroup = cgroup.scan_directory_recursively(target, mount_point)
 
-    def print_cgroups_recursively(_cgroup):
+    def print_cgroups_recursively(cg):
         if options.debug:
-            print(_cgroup)
+            print(cg)
 
-        print_cgroup(target, _cgroup, options.show_pid, options.verbose)
-        for child in _cgroup.childs:
+        print_cgroup(target, cg, options)
+        for child in cg.childs:
             print_cgroups_recursively(child)
 
-    global_status = get_global_status[target]()
-    if global_status is not None:
-        print('# '+global_status)
-    if target in legends:
-        legend = legends[target]
-        print("# Legend: # of procs (%s)"%(legend,))
-    else:
-        print('# Legend: # of procs')
     print_cgroups_recursively(root_cgroup)
 
 if __name__ == "__main__":
