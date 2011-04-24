@@ -416,6 +416,7 @@ class CGroup(object):
     def update_pids(self):
         pids = readfile(self.path_procs).split('\n')[:-1]
         self.pids = [int(pid) for pid in pids]
+        self.n_procs = len(pids)
 
     def _update_n_procs(self):
         self.n_procs = readfile(self.path_procs).count("\n") - 1

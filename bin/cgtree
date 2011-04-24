@@ -155,11 +155,15 @@ def print_cgroup(cg, indents, options):
         print(cg.pids)
     if options.hide_empty and len(cg.pids) == 0:
         return
-    indent_str = build_indent(indents)
+    s = build_indent(indents)
     if options.color:
-        print("%s%s"%(indent_str, decorate(cg.name, 'cgroup')))
+        s += decorate(cg.name, 'cgroup')
     else:
-        print("%s%s"%(indent_str, cg.name))
+        s += cg.name
+    if options.show_nprocs:
+        s += '(%d)'%(cg.n_procs,)
+    print(s)
+
     print_process_tree(indents, cg.pids, options)
 
 def main():
@@ -178,11 +182,14 @@ def main():
     parser.add_option('--color', action='store_true',
                       dest='color', default=False,
                       help='Coloring [False]')
-    parser.add_option('--debug', action='store_true', dest='debug',
-                      default=False, help='Show debug messages [False]')
     parser.add_option('-p', '--show-pid', action='store_true',
                       dest='show_pid', default=False,
-                      help='Show PID (use with -v) [False]')
+                      help='Show PID [False]')
+    parser.add_option('-n', '--show-nprocs', action='store_true',
+                      dest='show_nprocs', default=False,
+                      help='Show # of processes in each cgroup [False]')
+    parser.add_option('--debug', action='store_true', dest='debug',
+                      default=False, help='Show debug messages [False]')
     (options, _args) = parser.parse_args()
     if options.debug:
         print options
