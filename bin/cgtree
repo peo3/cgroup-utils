@@ -134,7 +134,7 @@ def print_process_tree(indent, pids, options):
 
     print_recursively(tops, indent)
 
-def print_cgroup(subsys_name, cg, options):
+def print_cgroup(cg, options):
     cg.update_pids()
     if options.debug:
         print(cg.pids)
@@ -196,7 +196,7 @@ def main():
         if options.debug:
             print(cg)
 
-        print_cgroup(target, cg, options)
+        print_cgroup(cg, options)
         for child in cg.childs:
             print_cgroups_recursively(child)
 
