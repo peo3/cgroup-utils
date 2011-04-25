@@ -56,6 +56,7 @@ class Process(object):
 
         items = readfile('/proc/%d/stat'%(pid,)).split(' ')
         self.name = items[1].lstrip('(').rstrip(')')
+        self.state = items[2]
         self.ppid = int(items[3])
         self.pgid = int(items[4])
         self.sid  = int(items[5])
@@ -82,15 +83,20 @@ class Process(object):
     def is_session_leader(self):
         return self.pid == self.sid
 
+    def is_running(self):
+        return self.state == 'R'
+
 DECORATER = {
     'red':       lambda s: '\033[31m'+s+'\033[0m',
     'bold':      lambda s: '\033[1m'+s+'\033[0m',
     'lightblue': lambda s: '\033[95m'+s+'\033[0m',
     'underline': lambda s: '\033[4m'+s+'\033[0m',
+    'blink':     lambda s: '\033[5m'+s+'\033[0m',
     'kthread':       lambda s: '['+s+']',
     'cgroup':        lambda s: DECORATER['bold'](DECORATER['red'](s)),
     'groupleader':   lambda s: DECORATER['lightblue'](s),
     'sessionleader': lambda s: DECORATER['underline'](s),
+    'running':       lambda s: DECORATER['blink'](s),
 }
 def decorate(string, type):
     return DECORATER[type](string)
@@ -106,6 +112,8 @@ def print_process(proc, indents, options):
                 name = decorate(name, 'groupleader')
             if proc.is_session_leader():
                 name = decorate(name, 'sessionleader')
+            if proc.is_running():
+                name = decorate(name, 'running')
         s += name
     if options.show_pid:
         s += "(%d)"%(proc.pid,)
