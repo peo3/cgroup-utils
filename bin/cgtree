@@ -70,8 +70,11 @@ class Process(object):
         else:
             args = cmdline.split(' ')
         name = os.path.basename(args[0]).rstrip(':')
-        if name in ['python', 'ruby', 'perl'] and len(args) >= 2:
-            name = os.path.basename(args[1])
+        if len(args) >= 2:
+            scripts = ['python', 'ruby', 'perl']
+            # Want to catch /usr/bin/python1.7 ...
+            if len(filter(lambda x: x in name, scripts)) > 0:
+                name = os.path.basename(args[1])
         return name
 
     def is_kthread(self):
