@@ -60,6 +60,8 @@ class CGTopStats:
             root_cgroup = cgroup.scan_directory_recursively(name, mount_point, self.FILTERS[name])
             cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
         self.cgroups = cgroups
+        if options.hide_root:
+            del self.cgroups['<root>']
 
         self.hostcpuinfo = host.CPUInfo()
         self.last_time   = time.time()
@@ -445,6 +447,9 @@ def main():
     parser.add_option('-e', '--hide-empty', action='store_true',
                       dest='hide_empty', default=False,
                       help='Hide empty groups [False]')
+    parser.add_option('-r', '--hide-root', action='store_true',
+                      dest='hide_root', default=False,
+                      help='Hide the root group [False]')
     parser.add_option('-b', '--batch', action='store_true', dest='batch',
                       help='non-interactive mode')
     parser.add_option('-n', '--iter', type='int', dest='iterations',
