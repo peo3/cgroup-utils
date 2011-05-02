@@ -24,6 +24,7 @@ import os, os.path
 import optparse
 
 from cgutils import cgroup
+from cgutils import process
 from cgutils import host
 from cgutils import formatter
 from cgutils.version import VERSION
@@ -49,45 +50,6 @@ def build_indent(indents):
         else:
             s += ' '*INDENT_SIZE
     return s
-
-class Process(object):
-    def __init__(self, pid):
-        self.pid = pid
-
-        items = readfile('/proc/%d/stat'%(pid,)).split(' ')
-        self.name = items[1].lstrip('(').rstrip(')')
-        self.state = items[2]
-        self.ppid = int(items[3])
-        self.pgid = int(items[4])
-        self.sid  = int(items[5])
-        if not self.is_kthread():
-            self.name = self._get_fullname()
-
-    def _get_fullname(self):
-        cmdline = readfile('/proc/%d/cmdline'%(self.pid,))
-        if '\0' in cmdline:
-            args = cmdline.split('\0')
-        else:
-            args = cmdline.split(' ')
-        name = os.path.basename(args[0]).rstrip(':')
-        if len(args) >= 2:
-            scripts = ['python', 'ruby', 'perl']
-            # Want to catch /usr/bin/python1.7 ...
-            if len(filter(lambda x: x in name, scripts)) > 0:
-                name = os.path.basename(args[1])
-        return name
-
-    def is_kthread(self):
-        return self.pgid == 0 and self.sid == 0
-
-    def is_group_leader(self):
-        return self.pid == self.pgid
-
-    def is_session_leader(self):
-        return self.pid == self.sid
-
-    def is_running(self):
-        return self.state == 'R'
 
 DECORATER = {
     'red':       lambda s: '\033[31m'+s+'\033[0m',
@@ -133,7 +95,7 @@ def print_process_tree(indents, pids, options):
     ppids = []
     rels = {}
     for pid in pids:
-        proc = Process(pid)
+        proc = process.Process(pid)
         if options.hide_kthread and proc.is_kthread():
             continue
         procs.append(proc)
