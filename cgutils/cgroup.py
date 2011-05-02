@@ -464,7 +464,7 @@ class CGroup(object):
         configs['notify_on_release'] = 0
         return configs
 
-def scan_directory_recursively0(subsystem, abspath, mount_point, filters):
+def scan_cgroups_recursively0(subsystem, abspath, mount_point, filters):
     relpath = abspath.replace(mount_point, '')
     cgroup = CGroup(mount_point, relpath,
                     subsystem_name2class[subsystem](abspath, filters))
@@ -473,14 +473,30 @@ def scan_directory_recursively0(subsystem, abspath, mount_point, filters):
     for _file in os.listdir(abspath):
         child_abspath = os.path.join(abspath,_file)
         if os.path.isdir(child_abspath):
-            child = scan_directory_recursively0(subsystem, child_abspath,
+            child = scan_cgroups_recursively0(subsystem, child_abspath,
                                                 mount_point, filters)
             _childs.append(child)
     cgroup.childs.extend(_childs)
     return cgroup
 
-def scan_directory_recursively(subsystem, mount_point, filters=None):
-    return scan_directory_recursively0(subsystem, mount_point, mount_point, filters)
+def scan_cgroups_recursively(subsystem, mount_point, filters=None):
+    return scan_cgroups_recursively0(subsystem, mount_point, mount_point, filters)
+
+class NoSuchSubsystemError(StandardError): pass
+
+def scan_cgroups(subsys):
+    status = SubsystemStatus()
+    if subsys not in status.get_all():
+        raise NoSuchSubsystemError('No such subsystem found: %s'%(subsys,))
+
+    if subsys not in status.get_available():
+        raise EnvironmentError('Disabled in the kernel: %s'%(subsys,))
+
+    if subsys not in status.get_enabled():
+        raise EnvironmentError('Not enabled in the system: %s'%(subsys,))
+
+    mount_point = status.get_path(subsys)
+    return scan_cgroups_recursively(subsys, mount_point)
 
 def walk_cgroups(cgroup, action, opaque):
     action(cgroup, opaque)

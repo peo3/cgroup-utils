@@ -56,7 +56,7 @@ class CGTopStats:
             if name not in subsys_status.get_enabled():
                 continue
             mount_point = subsys_status.get_path(name)
-            root_cgroup = cgroup.scan_directory_recursively(name, mount_point, self.FILTERS[name])
+            root_cgroup = cgroup.scan_cgroups_recursively(name, mount_point, self.FILTERS[name])
             cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
         self.cgroups = cgroups
         if options.hide_root:

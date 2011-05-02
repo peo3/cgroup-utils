@@ -171,24 +171,7 @@ def main():
     if options.debug:
         print options
 
-    target = options.target_subsystem
-    subsys_status = cgroup.SubsystemStatus()
-
-    if target not in subsys_status.get_all():
-        print >>sys.stderr, 'No such subsystem: %s'%(target,)
-        sys.exit(1)
-
-    if target not in subsys_status.get_available():
-        print >>sys.stderr, 'Disabled in the kernel: %s'%(target,)
-        sys.exit(3)
-
-    if target not in subsys_status.get_enabled():
-        print >>sys.stderr, 'Not enabled in the system: %s'%(target,)
-        sys.exit(3)
-
-    mount_point = subsys_status.get_path(target)
-
-    root_cgroup = cgroup.scan_directory_recursively(target, mount_point)
+    root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
     def print_cgroups_recursively(cg, indents):
         if options.debug:
