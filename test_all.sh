@@ -7,11 +7,14 @@ test_one()
 {
         $* >/dev/null 2>$ERRFILE
 	ret=$?
-        if [ $ret != 0 -a $ret != 3 ]; then
-                echo "[NG] $*"
-                cat $ERRFILE
-        elif [ $ret = 3 ]; then
-                echo "[??] $*"
+        if [ $ret != 0 ]; then
+                grep -q "EnvironmentError: Not enabled in the system" $ERRFILE
+                if [ $? = 0 ]; then
+                        echo "[??] $*"
+                else
+                        echo "[NG] $*"
+                        cat $ERRFILE
+                fi
 	else
                 echo "[ok] $*"
 	fi
