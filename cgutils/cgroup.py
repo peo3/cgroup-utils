@@ -396,10 +396,10 @@ class CGroup(object):
             self.depth = 0
         else:
             self.depth = self.calc_depth(self.relpath)
-        self.name = os.path.basename(relpath)
-        if self.name == '/':
+        if self.relpath == '/':
             self.fullname = self.name = '<root>'
         else:
+            self.name = os.path.basename(self.relpath)
             self.fullname = self.relpath[1:]
 
         self.path_tasks = os.path.join(self.abspath,'tasks')
