@@ -386,27 +386,27 @@ class CGroup(object):
             else: return rec(rest) + 1
         return rec(path)
 
-    def __init__(self, mount_point, relpath, subsystem):
+    def __init__(self, mount_point, path, subsystem):
         self.mount_point = mount_point
-        self.relpath = relpath
+        self.path = path
         self.subsystem = subsystem
 
-        self.abspath = os.path.normpath(self.mount_point+relpath)
-        if self.relpath == '/':
+        self.fullpath = os.path.normpath(self.mount_point+path)
+        if self.path == '/':
             self.depth = 0
         else:
-            self.depth = self.calc_depth(self.relpath)
-        if self.relpath == '/':
+            self.depth = self.calc_depth(self.path)
+        if self.path == '/':
             self.fullname = self.name = '<root>'
         else:
-            self.name = os.path.basename(self.relpath)
-            self.fullname = self.relpath[1:]
+            self.name = os.path.basename(self.path)
+            self.fullname = self.path[1:]
 
-        self.path_tasks = os.path.join(self.abspath,'tasks')
-        self.path_procs = os.path.join(self.abspath,'cgroup.procs')
-        self.path_release_agent = os.path.join(self.abspath,
+        self.path_tasks = os.path.join(self.fullpath,'tasks')
+        self.path_procs = os.path.join(self.fullpath,'cgroup.procs')
+        self.path_release_agent = os.path.join(self.fullpath,
                                                'release_agent')
-        self.path_notify_on_release = os.path.join(self.abspath,
+        self.path_notify_on_release = os.path.join(self.fullpath,
                                                    'notify_on_release')
 
         self.__update_usages()
@@ -468,17 +468,17 @@ class CGroup(object):
         configs['notify_on_release'] = 0
         return configs
 
-def scan_cgroups_recursively0(subsystem, abspath, mount_point, filters):
-    relpath = abspath.replace(mount_point, '')
+def scan_cgroups_recursively0(subsystem, fullpath, mount_point, filters):
+    relpath = fullpath.replace(mount_point, '')
     relpath = '/' if relpath == '' else relpath
     cgroup = CGroup(mount_point, relpath,
-                    subsystem_name2class[subsystem](abspath, filters))
+                    subsystem_name2class[subsystem](fullpath, filters))
 
     _childs = []
-    for _file in os.listdir(abspath):
-        child_abspath = os.path.join(abspath,_file)
-        if os.path.isdir(child_abspath):
-            child = scan_cgroups_recursively0(subsystem, child_abspath,
+    for _file in os.listdir(fullpath):
+        child_fullpath = os.path.join(fullpath,_file)
+        if os.path.isdir(child_fullpath):
+            child = scan_cgroups_recursively0(subsystem, child_fullpath,
                                                 mount_point, filters)
             _childs.append(child)
     cgroup.childs.extend(_childs)
