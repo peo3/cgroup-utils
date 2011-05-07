@@ -450,6 +450,9 @@ class CGroup(object):
         self._update_n_procs()
         self._update_usages()
 
+    def get_usages(self):
+        return self.usages.copy()
+
     def get_configs(self):
         configs = self.subsystem.get_configs()
         if os.path.exists(self.path_release_agent):
