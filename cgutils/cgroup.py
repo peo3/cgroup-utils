@@ -390,12 +390,12 @@ class CGroup(object):
         self.mount_point = mount_point
         self.relpath = relpath
         self.abspath = os.path.normpath(self.mount_point+relpath)
-        if self.relpath == '':
+        if self.relpath == '/':
             self.depth = 0
         else:
             self.depth = self.calc_depth(self.relpath)
         self.name = os.path.basename(relpath)
-        if self.name == '':
+        if self.name == '/':
             self.fullname = self.name = '<root>'
         else:
             self.fullname = self.relpath[1:]
@@ -466,6 +466,7 @@ class CGroup(object):
 
 def scan_cgroups_recursively0(subsystem, abspath, mount_point, filters):
     relpath = abspath.replace(mount_point, '')
+    relpath = '/' if relpath == '' else relpath
     cgroup = CGroup(mount_point, relpath,
                     subsystem_name2class[subsystem](abspath, filters))
 
