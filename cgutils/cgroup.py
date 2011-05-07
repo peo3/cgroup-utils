@@ -389,6 +389,8 @@ class CGroup(object):
     def __init__(self, mount_point, relpath, subsystem):
         self.mount_point = mount_point
         self.relpath = relpath
+        self.subsystem = subsystem
+
         self.abspath = os.path.normpath(self.mount_point+relpath)
         if self.relpath == '/':
             self.depth = 0
@@ -399,19 +401,18 @@ class CGroup(object):
             self.fullname = self.name = '<root>'
         else:
             self.fullname = self.relpath[1:]
+
+        self.path_tasks = os.path.join(self.abspath,'tasks')
         self.path_procs = os.path.join(self.abspath,'cgroup.procs')
-        self.subsystem = subsystem
-
-        self.childs = []
-
-        self.__update_usages()
-        self._update_n_procs()
-
         self.path_release_agent = os.path.join(self.abspath,
                                                'release_agent')
         self.path_notify_on_release = os.path.join(self.abspath,
                                                    'notify_on_release')
 
+        self.__update_usages()
+        self._update_n_procs()
+
+        self.childs = []
 
     def update_pids(self):
         pids = readfile(self.path_procs).split('\n')[:-1]
