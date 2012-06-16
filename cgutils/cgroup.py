@@ -260,6 +260,14 @@ class Subsystem(object):
     def get_default_configs(self):
         return self.CONFIGS.copy()
 
+    def get_stats(self):
+        stats = {}
+        for stat, cls in self.stats.iteritems():
+            #cls = parser.__class__
+            path = self.param2path[stat]
+            stats[stat] = self.PARSERS[cls](path)
+        return stats
+
     def get_usages(self):
         usages = {}
         for stat, cls in self.stats.iteritems():
@@ -399,6 +407,8 @@ class SubsystemFreezer(Subsystem):
             # Root group does not have the file
             return {'state': ''}
 
+    get_stats = get_usages
+
 class SubsystemNetCls(Subsystem):
     NAME = 'net_cls'
     STATS = {}
@@ -502,6 +512,9 @@ class CGroup(object):
 
     def get_usages(self):
         return self.usages.copy()
+
+    def get_stats(self):
+        return self.subsystem.get_stats()
 
     def get_configs(self):
         configs = self.subsystem.get_configs()
