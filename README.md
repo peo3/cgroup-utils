@@ -12,6 +12,7 @@ For example, cgtop is a top-like tool which shows activities of running processe
 #Available tools
 - cgtop
 - cgshowconfigs
+- cgshowstats
 - cgtree
 - cgroup_event_listener
 
@@ -52,6 +53,10 @@ For example, cgtop is a top-like tool which shows activities of running processe
     sys_daemon
     	swappiness=70
     	notify_on_release=1
+
+#Supported Linux Version
+
+3.2.y
 
 #License
 
