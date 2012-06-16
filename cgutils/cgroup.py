@@ -171,6 +171,47 @@ class DevicesStat(list):
     def parse(path):
         return readfile(path).split('\n')[:-1]
 
+"""
+total=83920 N0=83920
+file=63452 N0=63452
+anon=20468 N0=20468
+unevictable=0 N0=0
+"""
+class NumaStat(dict):
+    @staticmethod
+    def parse(path):
+        ret = {}
+        lines = readfile(path).split('\n')[:-1]
+        for line in lines:
+            item = {}
+            entries = line.split(' ')
+            name, value = entries[0].split('=')
+            item['total'] = long(value)
+            for entry in entries[1:]:
+                node, value = entry.split('=')
+                item[node] = long(value)
+            ret[name] = item
+        return ret
+
+"""
+# Two CPUs
+836842800783 656015556351 
+"""
+class PercpuStat(dict):
+    @staticmethod
+    def parse(path):
+        ret = {}
+        line = readfile(path).split('\n')[0]
+        stats = line.split(' ')
+        # A line may end with a redundant space
+        stats = [ stat for stat in stats if stat != '' ]
+        print stats
+        i = 0
+        for stat in stats:
+            ret[i] = long(stat)
+            i += 1
+        return ret
+
 #
 # The base class of subsystems
 #
@@ -180,8 +221,10 @@ class Subsystem(object):
         long: lambda path: long(readfile(path)),
         str:  lambda path: readfile(path).strip(),
         SimpleStat: SimpleStat.parse,
-        BlkioStat:  BlkioStat.parse,
-        DevicesStat:  DevicesStat.parse,
+        BlkioStat: BlkioStat.parse,
+        DevicesStat: DevicesStat.parse,
+        NumaStat: NumaStat.parse,
+        PercpuStat: PercpuStat.parse,
     }
     def __init__(self, path, filters=None):
         self.path = path
@@ -229,14 +272,18 @@ class Subsystem(object):
 #
 class SubsystemCpu(Subsystem):
     NAME = 'cpu'
-    STATS = {}
     _path_rt_period  = '/proc/sys/kernel/sched_rt_period_us'
     _path_rt_runtime = '/proc/sys/kernel/sched_rt_runtime_us'
+    STATS = {
+        'stat': SimpleStat,
+    }
     CONFIGS = {
         'shares':        1024,
         # Are the default values correct?
         'rt_period_us':  long(readfile(_path_rt_period)),
         'rt_runtime_us': long(readfile(_path_rt_runtime)),
+        'cfs_period_us': 100000,
+        'cfs_quota_us': -1,
     }
 
 class SubsystemCpuacct(Subsystem):
@@ -244,6 +291,7 @@ class SubsystemCpuacct(Subsystem):
     STATS = {
         'usage': long,
         'stat': SimpleStat,
+        'usage_percpu': PercpuStat,
     }
     CONFIGS = {}
 
@@ -278,6 +326,7 @@ class SubsystemMemory(Subsystem):
         'memsw.max_usage_in_bytes': long,
         'memsw.usage_in_bytes': long,
         'stat': SimpleStat,
+        'numa_stat': NumaStat,
     }
     MAX_ULONGLONG = 2**63-1
     CONFIGS = {
