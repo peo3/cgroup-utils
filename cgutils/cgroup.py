@@ -265,14 +265,16 @@ class Subsystem(object):
         for stat, cls in self.stats.iteritems():
             #cls = parser.__class__
             path = self.param2path[stat]
-            stats[stat] = self.PARSERS[cls](path)
+            if os.path.exists(path):
+                stats[stat] = self.PARSERS[cls](path)
         return stats
 
     def get_usages(self):
         usages = {}
         for stat, cls in self.stats.iteritems():
             path = self.param2path[stat]
-            usages[stat] = self.PARSERS[cls](path)
+            if os.path.exists(path):
+                usages[stat] = self.PARSERS[cls](path)
         return usages
 
 #
@@ -352,7 +354,8 @@ class SubsystemMemory(Subsystem):
 
         # For convenience
         usages['total'] = usages['usage_in_bytes']
-        usages['swap']  = usages['memsw.usage_in_bytes'] - usages['total']
+        if 'memsw.usage_in_bytes' in usages:
+            usages['swap']  = usages['memsw.usage_in_bytes'] - usages['total']
         usages['rss']   = usages['stat']['rss']
         return usages
 

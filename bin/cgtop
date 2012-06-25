@@ -122,7 +122,8 @@ class CGTopStats:
                 mem_stats = mem.usages_delta
                 stats['mem.total'] = mem_stats['total']
                 stats['mem.rss']   = mem_stats['rss']
-                stats['mem.swap']  = mem_stats['swap']
+                if 'swap' in mem_stats:
+                    stats['mem.swap']  = mem_stats['swap']
                 if [stats['mem.total'],stats['mem.rss'],\
                     stats['mem.swap']].count(0) != 3:
                     active = True
