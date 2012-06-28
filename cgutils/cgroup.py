@@ -254,7 +254,8 @@ class Subsystem(object):
         for config, default in self.configs.iteritems():
             cls = default.__class__
             path = self.param2path[config]
-            configs[config] = self.PARSERS[cls](path)
+            if os.path.exists(path):
+                configs[config] = self.PARSERS[cls](path)
         return configs
 
     def get_default_configs(self):
