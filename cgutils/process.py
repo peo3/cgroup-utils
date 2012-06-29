@@ -14,7 +14,7 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2011 peo3 <peo314159265@gmail.com>
+# Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
 
 import os, os.path
 
