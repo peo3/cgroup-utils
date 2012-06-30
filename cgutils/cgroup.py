@@ -477,6 +477,11 @@ class CGroup(object):
 
         self.childs = []
 
+    def __str__(self):
+        return "%s: subsystem=%s, name=%s, fullname=%s, mount_point=%s, path=%s, depth=%d" % \
+               (self.__class__, self.subsystem, self.name, self.fullname,
+                self.mount_point, self.path, self.depth)
+
     def update_pids(self):
         pids = readfile(self.path_procs).split('\n')[:-1]
         self.pids = [int(pid) for pid in pids]

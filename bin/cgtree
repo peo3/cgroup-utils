@@ -135,6 +135,8 @@ def print_cgroup(cg, indents, options):
         s += cg.name
     if options.show_nprocs:
         s += '(%d)'%(cg.n_procs,)
+    if options.debug:
+        s += str(indents)
     print(s)
 
     if options.show_procs:
