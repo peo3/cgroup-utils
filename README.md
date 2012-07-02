@@ -10,15 +10,15 @@ For example, cgtop is a top-like tool which shows activities of running processe
     $ sudo python setup.py install
 
 #Available tools
-- cgtop
-- cgshowconfigs
-- cgshowstats
-- cgtree
+- cgutil configs
+- cgutil stats
+- cgutil top
+- cgutil tree
 - cgroup_event_listener
 
 #Example outputs
 
-    $ cgtop -i -n 2 -b
+    $ cgutil top -i -n 2 -b
     18.1 msec to collect statistics
     [  CPUACCT  ]  [     BLKIO     ]  [        MEMORY       ]
      USR    SYS      READ    WRITE     TOTAL    RSS     SWAP     # NAME
@@ -30,7 +30,7 @@ For example, cgtop is a top-like tool which shows activities of running processe
       0.0%   0.0%    0.0 /s   0.0 /s   -64.0k    0.0     0.0     0 sys_essential
       0.0%   0.0%    0.0 /s   0.0 /s   108.0k   32.0k    0.0    97 usr_1000/default
 
-    $ cgshowconfigs -o memory
+    $ cgutil configs -o memory
     <root>
     	notify_on_release=1
     	release_agent=/usr/lib/ulatencyd/ulatencyd_cleanup.lua
