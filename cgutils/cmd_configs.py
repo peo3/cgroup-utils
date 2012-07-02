@@ -65,6 +65,4 @@ parser.add_option('--show-default', action='store_true',
 parser.add_option('-e', '--hide-empty', action='store_true',
                   dest='hide_empty', default=False,
                   help='Hide empty groups [False]')
-parser.add_option('--debug', action='store_true', dest='debug',
-                  default=False, help='Show debug messages [False]')
 

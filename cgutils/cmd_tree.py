@@ -181,6 +181,4 @@ parser.add_option('-n', '--show-nprocs', action='store_true',
 parser.add_option('-t', '--show-procs', action='store_true',
                   dest='show_procs', default=False,
                   help='Show processes in each cgroup [False]')
-parser.add_option('--debug', action='store_true', dest='debug',
-                  default=False, help='Show debug messages [False]')
 

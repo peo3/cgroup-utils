@@ -454,6 +454,4 @@ parser.add_option('-n', '--iter', type='int', dest='iterations',
 parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
                   help='Delay between iterations [1 second]',
                   metavar='SEC', default=1)
-parser.add_option('--debug', action='store_true', dest='debug',
-                  default=False, help='Show debug messages [False]')
 
