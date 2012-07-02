@@ -32,8 +32,8 @@ test_one()
 export PYTHONPATH=.
 
 for subsys in $enabled_cgroups; do
-    test_one python bin/cgtree -o $subsys
-    test_one python bin/cgshowconfigs -o $subsys
-    test_one python bin/cgshowstats -o $subsys
+    test_one python bin/cgutil tree -o $subsys
+    test_one python bin/cgutil configs -o $subsys
+    test_one python bin/cgutil stats -o $subsys
 done
-test_one python bin/cgtop -b -n 1
+test_one python bin/cgutil top -b -n 1

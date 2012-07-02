@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -142,37 +140,7 @@ def print_cgroup(cg, indents, options):
     if options.show_procs:
         print_process_tree(indents, cg.pids, options)
 
-def main():
-    DEFAULT_SUBSYSTEM = 'cpu'
-
-    parser = optparse.OptionParser(version='cgshowconfigs '+VERSION)
-    parser.add_option('-o', action='store', type='string',
-                      dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
-                      help='Specify a subsystem [cpu]')
-    parser.add_option('-e', '--hide-empty', action='store_true',
-                      dest='hide_empty', default=False,
-                      help='Hide empty groups [False]')
-    parser.add_option('-k', '--hide-kthread', action='store_true',
-                      dest='hide_kthread', default=False,
-                      help='Hide kernel threads [False]')
-    parser.add_option('--color', action='store_true',
-                      dest='color', default=False,
-                      help='Coloring [False]')
-    parser.add_option('-p', '--show-pid', action='store_true',
-                      dest='show_pid', default=False,
-                      help='Show PID [False]')
-    parser.add_option('-n', '--show-nprocs', action='store_true',
-                      dest='show_nprocs', default=False,
-                      help='Show # of processes in each cgroup [False]')
-    parser.add_option('-t', '--show-procs', action='store_true',
-                      dest='show_procs', default=False,
-                      help='Show processes in each cgroup [False]')
-    parser.add_option('--debug', action='store_true', dest='debug',
-                      default=False, help='Show debug messages [False]')
-    (options, _args) = parser.parse_args()
-    if options.debug:
-        print options
-
+def run(options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
     def print_cgroups_recursively(cg, indents):
@@ -189,5 +157,30 @@ def main():
 
     print_cgroups_recursively(root_cgroup, [])
 
-if __name__ == "__main__":
-    main()
+DEFAULT_SUBSYSTEM = 'cpu'
+
+parser = optparse.OptionParser(version='cgshowconfigs '+VERSION)
+parser.add_option('-o', action='store', type='string',
+                  dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
+                  help='Specify a subsystem [cpu]')
+parser.add_option('-e', '--hide-empty', action='store_true',
+                  dest='hide_empty', default=False,
+                  help='Hide empty groups [False]')
+parser.add_option('-k', '--hide-kthread', action='store_true',
+                  dest='hide_kthread', default=False,
+                  help='Hide kernel threads [False]')
+parser.add_option('--color', action='store_true',
+                  dest='color', default=False,
+                  help='Coloring [False]')
+parser.add_option('-p', '--show-pid', action='store_true',
+                  dest='show_pid', default=False,
+                  help='Show PID [False]')
+parser.add_option('-n', '--show-nprocs', action='store_true',
+                  dest='show_nprocs', default=False,
+                  help='Show # of processes in each cgroup [False]')
+parser.add_option('-t', '--show-procs', action='store_true',
+                  dest='show_procs', default=False,
+                  help='Show processes in each cgroup [False]')
+parser.add_option('--debug', action='store_true', dest='debug',
+                  default=False, help='Show debug messages [False]')
+

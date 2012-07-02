@@ -1,0 +1,55 @@
+#!/usr/bin/python
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#
+# See the COPYING file for license information.
+#
+# Copyright (c) 2012 peo3 <peo314159265@gmail.com>
+
+import sys
+
+commands = ['configs', 'stats', 'top', 'tree']
+
+def usage():
+    str = ''
+    str += 'Usage: cgutil <cmd> [args]\n'
+    str += '\t<cmd> := %s' % '|'.join(commands)
+    return str
+
+if len(sys.argv) <= 1:
+    print(usage())
+    sys.exit(1)
+
+cmd = sys.argv[1]
+
+if cmd not in commands:
+    print(usage())
+    sys.exit(1)
+
+modname = 'cmd_' + cmd
+modcgutils = __import__('cgutils', fromlist=[modname,])
+mod = getattr(modcgutils, modname)
+
+parser = mod.parser
+options, args = parser.parse_args()
+
+if args[1:]:
+    parser.error('Unexpected arguments: ' + ' '.join(args))
+
+if options.debug:
+    print options
+
+mod.run(options)
+

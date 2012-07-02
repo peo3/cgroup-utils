@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -25,27 +23,21 @@ from cgutils import cgroup
 from cgutils import formatter
 from cgutils.version import VERSION
 
-def print_stats(_cgroup):
-    stats = _cgroup.get_stats()
-    for name, val in stats.iteritems():
-        print("\t%s=%s"%(name, str(val)))
+def print_configs(_cgroup, show_default):
+    configs = _cgroup.get_configs()
+    defaults = _cgroup.get_default_configs()
+    for name, val in configs.iteritems():
+        if not show_default and defaults[name] == val:
+            continue
+        if 'in_bytes' in name:
+            if val == defaults[name]:
+                print("\t%s="%(name,))
+            else:
+                print("\t%s=%s"%(name, formatter.byte2str(val)))
+        else:
+            print("\t%s=%s"%(name, str(val)))
 
-def main():
-    DEFAULT_SUBSYSTEM = 'cpu'
-
-    parser = optparse.OptionParser(version='cgshowstats '+VERSION)
-    parser.add_option('-o', action='store', type='string',
-                      dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
-                      help='Specify a subsystem [cpu]')
-    parser.add_option('-e', '--hide-empty', action='store_true',
-                      dest='hide_empty', default=False,
-                      help='Hide empty groups [False]')
-    parser.add_option('--debug', action='store_true', dest='debug',
-                      default=False, help='Show debug messages [False]')
-    (options, _args) = parser.parse_args()
-    if options.debug:
-        print options
-
+def run(options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
     def print_cgroups_recursively(_cgroup):
@@ -56,10 +48,23 @@ def main():
             pass
         else:
             print(_cgroup.fullname)
-            print_stats(_cgroup)
+            print_configs(_cgroup, options.show_default)
         for child in _cgroup.childs:
             print_cgroups_recursively(child)
     print_cgroups_recursively(root_cgroup)
 
-if __name__ == "__main__":
-    main()
+DEFAULT_SUBSYSTEM = 'cpu'
+
+parser = optparse.OptionParser(version='cgshowconfigs '+VERSION)
+parser.add_option('-o', action='store', type='string',
+                  dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
+                  help='Specify a subsystem [cpu]')
+parser.add_option('--show-default', action='store_true',
+                  dest='show_default', default=False,
+                  help='Show every parameters including default values [False]')
+parser.add_option('-e', '--hide-empty', action='store_true',
+                  dest='hide_empty', default=False,
+                  help='Hide empty groups [False]')
+parser.add_option('--debug', action='store_true', dest='debug',
+                  default=False, help='Show debug messages [False]')
+

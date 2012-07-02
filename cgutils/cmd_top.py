@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -423,48 +421,39 @@ class CGTopUI:
             self.win.insstr(self.height - 1, 0, status_msg, curses.A_BOLD)
         self.win.refresh()
 
-def run_cgtop_window(win, options):
+def run_window(win, options):
     cgstats = CGTopStats(options)
     ui = CGTopUI(win, cgstats, options)
     ui.run()
 
-def run_cgtop(options):
+def run(options):
     if options.batch:
-        return run_cgtop_window(None, options)
+        return run_window(None, options)
     else:
-        return curses.wrapper(run_cgtop_window, options)
+        return curses.wrapper(run_window, options)
 
 USAGE=''
-def main():
-    parser = optparse.OptionParser(usage=USAGE, version='cgtop '+VERSION)
-    parser.add_option('-i', '--hide-inactive', action='store_true',
-                      dest='hide_inactive', default=False,
-                      help='Hide inactive groups [False]')
-    parser.add_option('-z', '--hide-zero', action='store_true',
-                      dest='hide_zero', default=False,
-                      help='Hide zero numbers [False]')
-    parser.add_option('-e', '--hide-empty', action='store_true',
-                      dest='hide_empty', default=False,
-                      help='Hide empty groups [False]')
-    parser.add_option('-r', '--hide-root', action='store_true',
-                      dest='hide_root', default=False,
-                      help='Hide the root group [False]')
-    parser.add_option('-b', '--batch', action='store_true', dest='batch',
-                      help='non-interactive mode')
-    parser.add_option('-n', '--iter', type='int', dest='iterations',
-                      metavar='NUM',
-                      help='Number of iterations before ending [infinite]')
-    parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
-                      help='Delay between iterations [1 second]',
-                      metavar='SEC', default=1)
-    parser.add_option('--debug', action='store_true', dest='debug',
-                      default=False, help='Show debug messages [False]')
+parser = optparse.OptionParser(usage=USAGE, version='cgtop '+VERSION)
+parser.add_option('-i', '--hide-inactive', action='store_true',
+                  dest='hide_inactive', default=False,
+                  help='Hide inactive groups [False]')
+parser.add_option('-z', '--hide-zero', action='store_true',
+                  dest='hide_zero', default=False,
+                  help='Hide zero numbers [False]')
+parser.add_option('-e', '--hide-empty', action='store_true',
+                  dest='hide_empty', default=False,
+                  help='Hide empty groups [False]')
+parser.add_option('-r', '--hide-root', action='store_true',
+                  dest='hide_root', default=False,
+                  help='Hide the root group [False]')
+parser.add_option('-b', '--batch', action='store_true', dest='batch',
+                  help='non-interactive mode')
+parser.add_option('-n', '--iter', type='int', dest='iterations',
+                  metavar='NUM',
+                  help='Number of iterations before ending [infinite]')
+parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
+                  help='Delay between iterations [1 second]',
+                  metavar='SEC', default=1)
+parser.add_option('--debug', action='store_true', dest='debug',
+                  default=False, help='Show debug messages [False]')
 
-    options, args = parser.parse_args()
-    if args:
-        parser.error('Unexpected arguments: ' + ' '.join(args))
-
-    run_cgtop(options)
-
-if __name__ == "__main__":
-    main()
