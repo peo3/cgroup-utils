@@ -341,6 +341,9 @@ class SubsystemMemory(Subsystem):
         'memsw.usage_in_bytes': long,
         'stat': SimpleStat,
         'numa_stat': NumaStat,
+        'kmem.tcp.failcnt': long,
+        'kmem.tcp.max_usage_in_bytes': long,
+        'kmem.tcp.usage_in_bytes': long,
     }
     MAX_ULONGLONG = 2**63-1
     CONFIGS = {
@@ -351,6 +354,7 @@ class SubsystemMemory(Subsystem):
         'soft_limit_in_bytes': MAX_ULONGLONG,
         'swappiness': 60,
         'use_hierarchy': 0,
+        'kmem.tcp.limit_in_bytes': MAX_ULONGLONG,
     }
     CONTROLS = {
         'force_empty': None,
