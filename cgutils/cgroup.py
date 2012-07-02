@@ -296,6 +296,7 @@ class SubsystemCpu(Subsystem):
         'cfs_period_us': 100000,
         'cfs_quota_us': -1,
     }
+    CONTROLS = {}
 
 class SubsystemCpuacct(Subsystem):
     NAME = 'cpuacct'
@@ -305,6 +306,7 @@ class SubsystemCpuacct(Subsystem):
         'usage_percpu': PercpuStat,
     }
     CONFIGS = {}
+    CONTROLS = {}
 
 class SubsystemCpuset(Subsystem):
     NAME = 'cpuset'
@@ -326,6 +328,7 @@ class SubsystemCpuset(Subsystem):
         'sched_load_balance': 1,
         'sched_relax_domain_level': -1,
     }
+    CONTROLS = {}
 
 class SubsystemMemory(Subsystem):
     NAME = 'memory'
@@ -348,6 +351,9 @@ class SubsystemMemory(Subsystem):
         'soft_limit_in_bytes': MAX_ULONGLONG,
         'swappiness': 60,
         'use_hierarchy': 0,
+    }
+    CONTROLS = {
+        'force_empty': None,
     }
 
     def get_usages(self):
@@ -382,6 +388,9 @@ class SubsystemBlkio(Subsystem):
         'weight': 1000,
         'weight_device': SimpleStat({}),
     }
+    CONTROLS = {
+        'reset_stats': None,
+    }
 
     def get_usages(self):
         usages = Subsystem.get_usages(self)
@@ -403,6 +412,7 @@ class SubsystemFreezer(Subsystem):
         'state': str,
     }
     CONFIGS = {}
+    CONTROLS = {}
 
     def get_usages(self):
         if os.path.exists(self.path_state):
@@ -419,12 +429,17 @@ class SubsystemNetCls(Subsystem):
     CONFIGS = {
         'classid': 0,
     }
+    CONTROLS = {}
 
 class SubsystemDevices(Subsystem):
     NAME = 'devices'
     STATS = {}
     CONFIGS = {
         'list': DevicesStat(['a *:* rwm']),
+    }
+    CONTROLS = {
+        'allow': None,
+        'deny': None,
     }
 
 subsystem_name2class = {
