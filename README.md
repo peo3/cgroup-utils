@@ -56,7 +56,7 @@ For example, cgtop is a top-like tool which shows activities of running processe
 
 #Supported Linux Version
 
-3.2.y
+3.4.y
 
 #License
 
