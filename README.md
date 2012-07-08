@@ -11,11 +11,11 @@ For example, cgtop is a top-like tool which shows activities of running processe
 
 #Available tools
 - cgutil configs
+- cgutil event
 - cgutil pgrep
 - cgutil stats
 - cgutil top
 - cgutil tree
-- cgroup_event_listener
 
 #Example outputs
 
