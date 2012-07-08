@@ -41,7 +41,8 @@ test_support()
     fi
 }
 
-export PYTHONPATH=.
+buildpath=$(find ./build/lib.linux* -maxdepth 0 -type d)
+export PYTHONPATH=$buildpath:.
 
 echo "## Testing each subcommands for each subsystems"
 for subsys in $enabled_cgroups; do
