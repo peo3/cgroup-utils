@@ -111,6 +111,19 @@ class SubsystemStatus(dict):
         return self.paths[subsys]
 
 """
+100
+103
+234
+"""
+class SimpleList(dict):
+    @staticmethod
+    def parse(path):
+        ret = []
+        for line in readfile(path).split('\n')[:-1]:
+            ret.append(long(line))
+        return ret
+
+"""
 user 2978976
 system 1037760
 """
@@ -463,6 +476,17 @@ for name, _class in subsystem_name2class.iteritems():
     subsystem_class2name[_class] = name
 
 class CGroup(object):
+    STATS = {
+        'tasks': SimpleList,
+        'cgroup.procs': SimpleList,
+    }
+    CONFIGS = {
+        'release_agent': '',
+        'notify_on_release': 1,
+    }
+    CONTROLS = {
+        'cgroup.event_control': None,
+    }
     def calc_depth(self, path):
         def rec(path):
             rest = os.path.split(path)[0]
@@ -486,13 +510,9 @@ class CGroup(object):
             self.name = os.path.basename(self.path)
             self.fullname = self.path[1:]
 
-        self.path_tasks = os.path.join(self.fullpath,'tasks')
-        self.path_procs = os.path.join(self.fullpath,'cgroup.procs')
-        self.path_release_agent = os.path.join(self.fullpath,
-                                               'release_agent')
-        self.path_notify_on_release = os.path.join(self.fullpath,
-                                                   'notify_on_release')
-        self.path_event_control = os.path.join(self.fullpath, 'cgroup.event_control')
+        self.paths = {}
+        for file in self.STATS.keys() + self.CONFIGS.keys() + self.CONTROLS.keys():
+            self.paths[file] = os.path.join(self.fullpath, file)
 
         self.__update_usages()
         self._update_n_procs()
@@ -505,12 +525,12 @@ class CGroup(object):
                 self.mount_point, self.path, self.depth)
 
     def update_pids(self):
-        pids = readfile(self.path_procs).split('\n')[:-1]
+        pids = readfile(self.paths['cgroup.procs']).split('\n')[:-1]
         self.pids = [int(pid) for pid in pids]
         self.n_procs = len(pids)
 
     def _update_n_procs(self):
-        self.n_procs = readfile(self.path_procs).count("\n") - 1
+        self.n_procs = readfile(self.paths['cgroup.procs']).count("\n") - 1
         if self.n_procs == -1: self.n_procs = 0
 
     def __update_usages(self):
@@ -549,14 +569,14 @@ class CGroup(object):
 
     def get_configs(self):
         configs = self.subsystem.get_configs()
-        if os.path.exists(self.path_release_agent):
-            configs['release_agent'] = readfile(self.path_release_agent).strip()
-        configs['notify_on_release'] = int(readfile(self.path_notify_on_release))
+        if os.path.exists(self.paths['release_agent']):
+            configs['release_agent'] = readfile(self.paths['release_agent']).strip()
+        configs['notify_on_release'] = int(readfile(self.paths['notify_on_release']))
         return configs
 
     def get_default_configs(self):
         configs = self.subsystem.get_default_configs()
-        if os.path.exists(self.path_release_agent):
+        if os.path.exists(self.paths['release_agent']):
             configs['release_agent'] = ''
         configs['notify_on_release'] = 0
         return configs
@@ -569,7 +589,7 @@ class EventListener(object):
         self.target_file = open(target_path)
         self.target_fd = self.target_file.fileno()
 
-        ec_path = self.cgroup.path_event_control
+        ec_path = self.cgroup.paths['cgroup.event_control']
         self.ec_file = open(ec_path, 'w')
         self.ec_fd = self.ec_file.fileno()
 
