@@ -10,7 +10,7 @@ setup(name = 'cgroup-utils',
       description = 'Utility tools for control groups of Linux',
       long_description =
 '''cgroup-utils includes some useful libraries and tools to view status, statistics and configurations of control groups.''',
-      scripts = ['bin/cgutil', 'bin/cgroup_event_listener'],
+      scripts = ['bin/cgutil',],
       packages = ['cgutils'],
       ext_package = 'cgutils',
       ext_modules = [mod_linux],
