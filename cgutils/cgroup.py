@@ -19,8 +19,10 @@
 from __future__ import with_statement
 import os, os.path
 import re
+import struct
 
 from cgutils import host
+from cgutils import linux
 
 def readfile(filepath):
     with open(filepath) as f:
@@ -490,6 +492,7 @@ class CGroup(object):
                                                'release_agent')
         self.path_notify_on_release = os.path.join(self.fullpath,
                                                    'notify_on_release')
+        self.path_event_control = os.path.join(self.fullpath, 'cgroup.event_control')
 
         self.__update_usages()
         self._update_n_procs()
@@ -558,6 +561,28 @@ class CGroup(object):
         configs['notify_on_release'] = 0
         return configs
 
+class EventListener(object):
+    def __init__(self, cgroup, target_path):
+        self.cgroup = cgroup
+
+        # To keep the files open
+        self.target_file = open(target_path)
+        self.target_fd = self.target_file.fileno()
+
+        ec_path = self.cgroup.path_event_control
+        self.ec_file = open(ec_path, 'w')
+        self.ec_fd = self.ec_file.fileno()
+
+        self.event_fd = linux.eventfd(0, 0)
+
+    def set_threshold(self, threshold):
+        line = "%d %d %d\0" % (self.event_fd, self.target_fd, threshold)
+        os.write(self.ec_fd, line)
+
+    def wait(self):
+        ret = os.read(self.event_fd, 64/8)
+        return struct.unpack('Q', ret)
+
 def scan_cgroups_recursively0(subsystem, fullpath, mount_point, filters):
     relpath = fullpath.replace(mount_point, '')
     relpath = '/' if relpath == '' else relpath
@@ -597,3 +622,15 @@ def walk_cgroups(cgroup, action, opaque):
     action(cgroup, opaque)
     for child in cgroup.childs:
         walk_cgroups(child, action, opaque)
+
+def get_cgroup(_path):
+    status = SubsystemStatus()
+    for name, mount_point in status.paths.iteritems():
+        if name in _path:
+            break
+    else:
+        raise StandardError('Invalid path: ' % _path)
+    path = _path.replace(mount_point, '')
+    subsys = subsystem_name2class[name](mount_point)
+
+    return CGroup(mount_point, path, subsys)

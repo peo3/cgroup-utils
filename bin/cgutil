@@ -20,7 +20,7 @@
 
 import sys
 
-COMMANDS = ['configs', 'pgrep', 'stats', 'top', 'tree']
+COMMANDS = ['configs', 'event', 'pgrep', 'stats', 'top', 'tree']
 
 def usage():
     str = ''
