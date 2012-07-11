@@ -34,14 +34,28 @@ class Process(object):
         self.sid  = int(items[5])
         if not self.is_kthread():
             self.name = self._get_fullname()
+            cmdline = readfile('/proc/%d/cmdline'%(self.pid,))
+            self.cmdline = cmdline.rstrip('\0').replace('\0', ' ')
+        else:
+            self.cmdline = self.name
 
     def _get_fullname(self):
         cmdline = readfile('/proc/%d/cmdline'%(self.pid,))
         if '\0' in cmdline:
-            args = cmdline.split('\0')
+            args = cmdline.rstrip('\0').split('\0')
+            if ' ' in args[0]:
+                name = args[0].split(' ')[0]
+            else:
+                name = args[0]
         else:
+            #args = [cmdline,]
             args = cmdline.split(' ')
-        name = os.path.basename(args[0]).rstrip(':')
+            name = args[0]
+        #print args
+        if name[0] == '/':
+            name = os.path.basename(name)
+        name = name.rstrip(':')
+        #print name
         if len(args) >= 2:
             scripts = ['python', 'ruby', 'perl']
             # Want to catch /usr/bin/python1.7 ...
