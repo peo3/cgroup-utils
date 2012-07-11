@@ -11,6 +11,7 @@ For example, cgtop is a top-like tool which shows activities of running processe
 
 #Available tools
 - cgutil configs
+- cgutil pgrep
 - cgutil stats
 - cgutil top
 - cgutil tree
