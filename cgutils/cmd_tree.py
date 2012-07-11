@@ -140,7 +140,7 @@ def print_cgroup(cg, indents, options):
     if options.show_procs:
         print_process_tree(indents, cg.pids, options)
 
-def run(options):
+def run(args, options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
     def print_cgroups_recursively(cg, indents):

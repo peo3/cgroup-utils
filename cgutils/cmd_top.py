@@ -426,7 +426,7 @@ def run_window(win, options):
     ui = CGTopUI(win, cgstats, options)
     ui.run()
 
-def run(options):
+def run(args, options):
     if options.batch:
         return run_window(None, options)
     else:

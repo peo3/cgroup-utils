@@ -37,7 +37,7 @@ def print_configs(_cgroup, show_default):
         else:
             print("\t%s=%s"%(name, str(val)))
 
-def run(options):
+def run(args, options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
     def print_cgroups_recursively(_cgroup):

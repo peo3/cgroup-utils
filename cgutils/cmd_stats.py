@@ -28,7 +28,7 @@ def print_stats(_cgroup):
     for name, val in stats.iteritems():
         print("\t%s=%s"%(name, str(val)))
 
-def run(options):
+def run(args, options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
     def print_cgroups_recursively(_cgroup):

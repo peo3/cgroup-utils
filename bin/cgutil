@@ -55,11 +55,11 @@ usage = "%%prog %s [options]" % cmd
 parser.usage = usage
 options, args = parser.parse_args()
 
-if args[1:]:
-    parser.error('Unexpected arguments: ' + ' '.join(args))
+#if args[1:]:
+#    parser.error('Unexpected arguments: ' + ' '.join(args))
 
 if options.debug:
     print options
 
-mod.run(options)
+mod.run(args[1:], options)
 
