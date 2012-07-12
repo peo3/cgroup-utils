@@ -51,11 +51,9 @@ class Process(object):
             #args = [cmdline,]
             args = cmdline.split(' ')
             name = args[0]
-        #print args
         if name[0] == '/':
             name = os.path.basename(name)
         name = name.rstrip(':')
-        #print name
         if len(args) >= 2:
             scripts = ['python', 'ruby', 'perl']
             # Want to catch /usr/bin/python1.7 ...
