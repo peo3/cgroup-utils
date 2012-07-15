@@ -9,16 +9,69 @@ For example, cgtop is a top-like tool which shows activities of running processe
     $ python setup.py build
     $ sudo python setup.py install
 
-#Available tools
-- cgutil configs
-- cgutil event
-- cgutil pgrep
-- cgutil stats
-- cgutil top
-- cgutil tree
+#Available subcommands
+##cgutil configs
+This subcommand show you configurations of cgroups.
+By default, it shows only changed configurations.
+###Example output
+    $ cgutil configs -o memory
+    <root>
+        notify_on_release=1
+    	release_agent=/usr/lib/ulatencyd/ulatencyd_cleanup.lua
+    sys_essential
+    	swappiness=0
+    	notify_on_release=1
+    sys_bg
+    	swappiness=100
+    	notify_on_release=1
 
-#Example outputs
+##cgutil event
+This subcommand makes cgroup.event_control easy to use.
+It exits when a state of a target cgroup crosses a threshold which you set,
+thus, you can know the state of the cgroup has changed.
+###Example output
+    $ cgutil event /sys/fs/cgroup/memory/system/sshd.service/memory.usage_in_bytes +1M
+    $ # It exits when memory usage of processes in the cgroup has increased one more MB.
 
+##cgutil pgrep
+This subcommand is alike `pgrep` command but it shows cgroups in addtion to PIDs.
+###Example output
+    $ cgutil pgrep ssh
+    /: 15072
+    /: 15074
+    /system/sshd.service: 630
+    $ cgutil pgrep ssh -l -f
+    /: 15072 sshd: ozaki-r [priv]
+    /: 15074 sshd: ozaki-r@pts/2
+    /: 15157 /bin/python /bin/cgutil pgrep ssh -l -f
+    /system/sshd.service: 630 /usr/sbin/sshd -D
+
+##cgutil stats
+This subcommand shows you states of cgroups.
+###Example output
+    $ cgutil stats
+    <root>
+            stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
+    system  
+            stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
+    system/sm-client.service
+            stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
+    system/sendmail.service
+            stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
+    system/vboxadd-service.service
+            stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
+    system/colord.service
+            stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
+    system/colord-sane.service
+            stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
+    system/udisks2.service
+            stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
+    system/cups.service
+            stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
+
+##cgutil top
+This subcommand is alike `top` command but it shows activities in a unit of cgroups.
+###Example output
     $ cgutil top -i -n 2 -b
     18.1 msec to collect statistics
     [  CPUACCT  ]  [     BLKIO     ]  [        MEMORY       ]
@@ -31,29 +84,26 @@ For example, cgtop is a top-like tool which shows activities of running processe
       0.0%   0.0%    0.0 /s   0.0 /s   -64.0k    0.0     0.0     0 sys_essential
       0.0%   0.0%    0.0 /s   0.0 /s   108.0k   32.0k    0.0    97 usr_1000/default
 
-    $ cgutil configs -o memory
+##cgutil tree
+This subcommand shows you tree structure of cgroups.
+###Example outputs
+    $ cgutil tree -o blkio
     <root>
-    	notify_on_release=1
-    	release_agent=/usr/lib/ulatencyd/ulatencyd_cleanup.lua
-    sys_essential
-    	swappiness=0
-    	notify_on_release=1
-    sys_bg
-    	swappiness=100
-    	notify_on_release=1
-    usr_1000
-    	notify_on_release=1
-    usr_1000/active
-    	swappiness=0
-    	notify_on_release=1
-    usr_1000/ui
-    	swappiness=0
-    	notify_on_release=1
-    usr_1000/default
-    	notify_on_release=1
-    sys_daemon
-    	swappiness=70
-    	notify_on_release=1
+       `system
+           +sm-client.service
+           +sendmail.service
+           +vboxadd-service.service
+           +colord.service
+           +colord-sane.service
+           +udisks2.service
+           +cups.service
+           +rtkit-daemon.service
+
+    (snip)
+
+           +fsck@.service
+           +udev.service
+           `systemd-journald.service
 
 #Supported Linux Version
 
