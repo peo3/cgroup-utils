@@ -27,8 +27,13 @@ from cgutils import formatter
 from cgutils.version import VERSION
 
 def run(args, options):
-    root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
+    global parser
+    if len(args) < 1:
+        parser.usage = 'cgutil pgrep [options] <proc_name>'
+        parser.error('Less arguments: ' + ' '.join(args))
+
     procname = args[0]
+    root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
     def print_matched(cg, dummy):
         cg.update_pids()
