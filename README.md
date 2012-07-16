@@ -14,6 +14,14 @@ For example, cgtop is a top-like tool which shows activities of running processe
     $ python setup.py bdist --formats=rpm
 
 #Available subcommands
+
+- configs
+- event
+- pgrep
+- stats
+- top
+- tree
+
 ##cgutil configs
 This subcommand show you configurations of cgroups.
 By default, it shows only changed configurations.
