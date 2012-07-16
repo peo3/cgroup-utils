@@ -9,6 +9,10 @@ For example, cgtop is a top-like tool which shows activities of running processe
     $ python setup.py build
     $ sudo python setup.py install
 
+##Packaging (rpm)
+
+    $ python setup.py bdist --formats=rpm
+
 #Available subcommands
 ##cgutil configs
 This subcommand show you configurations of cgroups.
