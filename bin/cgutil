@@ -20,7 +20,9 @@
 
 import sys
 
-COMMANDS = ['configs', 'event', 'pgrep', 'stats', 'top', 'tree']
+import cgutils.commands
+
+COMMANDS = cgutils.commands.__all__
 
 def usage():
     str = ''
@@ -38,9 +40,7 @@ if cmd not in COMMANDS:
     print(usage())
     sys.exit(1)
 
-modname = 'cmd_' + cmd
-modcgutils = __import__('cgutils', fromlist=[modname,])
-mod = getattr(modcgutils, modname)
+mod = __import__('cgutils.commands' + '.' + cmd, fromlist=[cmd,])
 
 #
 # Run subcommand
@@ -54,9 +54,6 @@ parser.add_option('--debug', action='store_true', dest='debug',
 usage = "%%prog %s [options]" % cmd
 parser.usage = usage
 options, args = parser.parse_args()
-
-#if args[1:]:
-#    parser.error('Unexpected arguments: ' + ' '.join(args))
 
 if options.debug:
     print options
