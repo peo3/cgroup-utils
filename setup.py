@@ -11,7 +11,7 @@ setup(name = 'cgroup-utils',
       long_description =
 '''cgroup-utils includes some useful libraries and tools to view status, statistics and configurations of control groups.''',
       scripts = ['bin/cgutil',],
-      packages = ['cgutils'],
+      packages = ['cgutils', 'cgutils.commands'],
       ext_package = 'cgutils',
       ext_modules = [mod_linux],
       author = 'peo3',
