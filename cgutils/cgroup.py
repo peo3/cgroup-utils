@@ -279,19 +279,10 @@ class Subsystem(object):
     def get_stats(self):
         stats = {}
         for stat, cls in self.stats.iteritems():
-            #cls = parser.__class__
             path = self.param2path[stat]
             if os.path.exists(path):
                 stats[stat] = self.PARSERS[cls](path)
         return stats
-
-    def get_usages(self):
-        usages = {}
-        for stat, cls in self.stats.iteritems():
-            path = self.param2path[stat]
-            if os.path.exists(path):
-                usages[stat] = self.PARSERS[cls](path)
-        return usages
 
 #
 # Classes of each subsystem
@@ -375,16 +366,6 @@ class SubsystemMemory(Subsystem):
         'force_empty': None,
     }
 
-    def get_usages(self):
-        usages = Subsystem.get_usages(self)
-
-        # For convenience
-        usages['total'] = usages['usage_in_bytes']
-        if 'memsw.usage_in_bytes' in usages:
-            usages['swap']  = usages['memsw.usage_in_bytes'] - usages['total']
-        usages['rss']   = usages['stat']['rss']
-        return usages
-
 class SubsystemBlkio(Subsystem):
     NAME = 'blkio'
     STATS = {
@@ -411,20 +392,6 @@ class SubsystemBlkio(Subsystem):
         'reset_stats': None,
     }
 
-    def get_usages(self):
-        usages = Subsystem.get_usages(self)
-
-        # For convenience
-        n_reads = n_writes = 0L
-        for k,v in usages['io_service_bytes'].iteritems():
-            if k == 'Total': continue
-            n_reads += v['Read']
-            n_writes += v['Write']
-        usages['read'] = n_reads
-        usages['write'] = n_writes
-            
-        return usages
-
 class SubsystemFreezer(Subsystem):
     NAME = 'freezer'
     STATS = {
@@ -433,14 +400,12 @@ class SubsystemFreezer(Subsystem):
     CONFIGS = {}
     CONTROLS = {}
 
-    def get_usages(self):
+    def get_stats(self):
         if os.path.exists(self.path_state):
             return {'state': "%s"%(readfile(self.path_state).strip(),),}
         else:
             # Root group does not have the file
             return {'state': ''}
-
-    get_stats = get_usages
 
 class SubsystemNetCls(Subsystem):
     NAME = 'net_cls'
@@ -511,7 +476,6 @@ class CGroup(object):
         for file in self.STATS.keys() + self.CONFIGS.keys() + self.CONTROLS.keys():
             self.paths[file] = os.path.join(self.fullpath, file)
 
-        self.__update_usages()
         self._update_n_procs()
 
         self.childs = []
@@ -530,36 +494,8 @@ class CGroup(object):
         self.n_procs = readfile(self.paths['cgroup.procs']).count("\n") - 1
         if self.n_procs == -1: self.n_procs = 0
 
-    def __update_usages(self):
-        self.usages = self.subsystem.get_usages()
-
-    def _update_usages(self):
-        prev = self.usages
-        self.__update_usages()
-
-        def calc_delta_recursive(usage, _prev, delta):
-            for k, v in usage.iteritems():
-                # prev value may not be set, so have to check the existence
-                if v.__class__ is not dict:
-                    if k in _prev:
-                        delta[k] = v - _prev[k]
-                    else:
-                        delta[k] = None
-                    continue
-                _delta = {}
-                if k in _prev:
-                    calc_delta_recursive(v, _prev[k], _delta)
-                delta[k] = _delta
-
-        self.usages_delta = {}
-        calc_delta_recursive(self.usages, prev, self.usages_delta)
-
     def update(self):
         self._update_n_procs()
-        self._update_usages()
-
-    def get_usages(self):
-        return self.usages.copy()
 
     def get_stats(self):
         return self.subsystem.get_stats()

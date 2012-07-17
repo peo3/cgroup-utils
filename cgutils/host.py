@@ -34,25 +34,14 @@ def readfile(filepath):
         return f.read()
 
 class CPUInfo():
-    def __init__(self):
-        self._update()
-        self._total_usage_prev = self.total_usage
-
     def get_online(self):
         return readfile("/sys/devices/system/cpu/online").strip()
 
-    def _update(self):
+    def get_total_usage(self):
         line = readfile('/proc/stat').split('\n')[0]
         line = line[5:] # get rid of 'cpu  '
         usages = map(lambda x: int(x), line.split(' '))
-        self.total_usage = sum(usages)/multiprocessing.cpu_count()
-        # Total ticks
-        #self.total_usage = int(line.split(' ')[5])
-    def update(self):
-        self._total_usage_prev = self.total_usage
-        self._update()
-    def get_total_usage_delta(self):
-        return self.total_usage - self._total_usage_prev
+        return sum(usages)/multiprocessing.cpu_count()
 
 class MemInfo(dict):
     def get_online(self):
