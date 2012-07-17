@@ -36,9 +36,12 @@ def run(args, options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
     def print_matched(cg, dummy):
+        mypid = os.getpid()
         cg.update_pids()
         procs = []
         for pid in cg.pids:
+            if pid == mypid:
+                continue
             proc = process.Process(pid)
             if options.cmdline:
                 comp = proc.cmdline
