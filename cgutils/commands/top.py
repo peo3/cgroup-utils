@@ -72,7 +72,7 @@ class CGTopStats:
             cpu = mem = bio = None
             proc_exists = False
             for _cgroup in cgroup_list:
-                subsys_name = cgroup.subsystem_class2name[_cgroup.subsystem.__class__]
+                subsys_name = _cgroup.subsystem.NAME
                 if subsys_name == 'cpuacct':
                     cpu = _cgroup
                 elif subsys_name == 'memory':

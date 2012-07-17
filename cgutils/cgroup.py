@@ -471,9 +471,6 @@ subsystem_name2class = {
     'net_cls':SubsystemNetCls,
     'devices':SubsystemDevices,
 }
-subsystem_class2name = {}
-for name, _class in subsystem_name2class.iteritems():
-    subsystem_class2name[_class] = name
 
 class CGroup(object):
     STATS = {
