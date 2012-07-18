@@ -411,13 +411,13 @@ class CGTopUI:
             strs = []
 
             item2formatters = {
-                'cpu.user':  formatter.percent2str,
-                'cpu.system':formatter.percent2str,
-                'bio.read':  formatter.byps2str,
-                'bio.write': formatter.byps2str,
-                'mem.total': formatter.byte2str,
-                'mem.rss':   formatter.byte2str,
-                'mem.swap':  formatter.byte2str,
+                'cpu.user':  formatter.percent,
+                'cpu.system':formatter.percent,
+                'bio.read':  formatter.bytepersec,
+                'bio.write': formatter.bytepersec,
+                'mem.total': formatter.byte,
+                'mem.rss':   formatter.byte,
+                'mem.swap':  formatter.byte,
             }
 
             def to_s(name):

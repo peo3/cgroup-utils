@@ -50,7 +50,7 @@ def print_configs(_cgroup, options):
             if val == defaults[name]:
                 valstr = ''
             else:
-                valstr = formatter.byte2str(val)
+                valstr = formatter.byte(val)
         else:
             valstr = str(val)
         if options.show_rate and name in _support_rate:
@@ -58,7 +58,7 @@ def print_configs(_cgroup, options):
                 rate = _support_rate[name](val)
             else:
                 rate = float(val) / defaults[name]
-            ratestr = ' (%s)' % formatter.percent2str(rate)
+            ratestr = ' (%s)' % formatter.percent(rate)
         else:
             ratestr = ''
 

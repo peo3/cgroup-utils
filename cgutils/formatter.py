@@ -23,7 +23,7 @@ USEC=1000*1000*1000
 DAY=60*60*24
 HOUR=60*60
 MINUTE=60
-def usec2str(sec):
+def usec(sec):
     sec = float(sec)/USEC
     if sec > DAY:
         return "%.1fd"%(sec/DAY,)
@@ -36,7 +36,7 @@ def usec2str(sec):
 
 max_width_time = len('NNN.N_')
 
-def percent2str(per):
+def percent(per):
     #return "%.1f %%"%(per,)
     #return "%.1f"%(per,)
     return "%.1f%%"%(per,)
@@ -53,7 +53,7 @@ KiB=1024
 GB=1000*1000*1000
 MB=1000*1000
 KB=1000
-def byte2str(byte):
+def byte(byte):
     byte = float(byte)
     if abs(byte) > GB:
         return "%.1fG"%(byte/GiB,)
@@ -70,7 +70,7 @@ max_width_memory = max_width_byte
 """
     Block I/O
 """
-def byps2str(byte):
+def bytepersec(byte):
     byte = float(byte)
     if byte > GB:
         return "%.1fG/s"%(byte/GiB,)
