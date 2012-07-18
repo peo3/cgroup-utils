@@ -26,16 +26,21 @@ from cgutils.version import VERSION
 def print_configs(_cgroup, show_default):
     configs = _cgroup.get_configs()
     defaults = _cgroup.get_default_configs()
+    cg_shown = False
     for name, val in configs.iteritems():
         if not show_default and defaults[name] == val:
             continue
         if 'in_bytes' in name:
             if val == defaults[name]:
-                print("\t%s="%(name,))
+                valstr = ''
             else:
-                print("\t%s=%s"%(name, formatter.byte2str(val)))
+                valstr = formatter.byte2str(val)
         else:
-            print("\t%s=%s"%(name, str(val)))
+            valstr = str(val)
+        if not cg_shown:
+            print(_cgroup.fullname)
+            cg_shown = True
+        print("\t%s=%s" % (name, valstr))
 
 def run(args, options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
@@ -47,7 +52,6 @@ def run(args, options):
         if options.hide_empty and _cgroup.n_procs == 0:
             pass
         else:
-            print(_cgroup.fullname)
             print_configs(_cgroup, options.show_default)
         for child in _cgroup.childs:
             print_cgroups_recursively(child)
