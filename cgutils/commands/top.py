@@ -49,6 +49,7 @@ class CGTopStats:
     
         subsys_status = cgroup.SubsystemStatus()
 
+        # Collect cgroups by group name (path)
         cgroups = {}
         for name in self.SUBSYSTEMS:
             if name not in subsys_status.get_enabled():
@@ -67,6 +68,19 @@ class CGTopStats:
 
         self.delta['cpu'] = 0
         self.delta['time'] = 0
+
+    def _get_skelton_stats(self, cg):
+        return {
+            'name': cg.fullname,
+            'n_procs': cg.n_procs,
+            'cpu.user': 0.0,
+            'cpu.system': 0.0,
+            'bio.read':  0.0,
+            'bio.write': 0.0,
+            'mem.total': 0,
+            'mem.rss': 0,
+            'mem.swap':  0,
+            }
 
     def get_cgroup_stats(self):
         cgroup_stats = []
@@ -88,16 +102,7 @@ class CGTopStats:
                 continue
             
             active = False
-            stats = {}
-            stats['name'] = _cgroup.fullname
-            stats['n_procs'] = _cgroup.n_procs
-            stats['cpu.user'] = 0.0
-            stats['cpu.system'] = 0.0
-            stats['bio.read']  = 0.0
-            stats['bio.write'] = 0.0
-            stats['mem.total'] = 0
-            stats['mem.rss']   = 0
-            stats['mem.swap']  = 0
+            stats = self._get_skelton_stats(_cgroup)
 
             if cpu:
                 def percent(delta):
@@ -133,19 +138,18 @@ class CGTopStats:
                 cgroup_stats.append(stats)
         return cgroup_stats
 
-    def _trans_blkio_stats(self, stats):
+    def __conv_blkio_stats(stats):
         n_reads = n_writes = 0L
         for k,v in stats['io_service_bytes'].iteritems():
             if k == 'Total': continue
             n_reads += v['Read']
             n_writes += v['Write']
-        _stats = {}
-        _stats['read'] = n_reads
-        _stats['write'] = n_writes
+        return {
+            'read': n_reads,
+            'write': n_writes,
+            }
 
-        return _stats
-
-    def _trans_memory_stats(self, stats):
+    def __conv_memory_stats(stats):
         _stats = {}
         _stats['total'] = stats['usage_in_bytes']
         if 'memsw.usage_in_bytes' in stats:
@@ -153,36 +157,47 @@ class CGTopStats:
         _stats['rss'] = stats['stat']['rss']
         return _stats
 
-    def _trans_cpu_stats(self, stats):
-        _stats = {}
-        _stats['user'] = stats['stat']['user']
-        _stats['system'] = stats['stat']['system']
-        return _stats
+    def __conv_cpu_stats(stats):
+        return {
+            'user': stats['stat']['user'],
+            'system': stats['stat']['system'],
+            }
 
-    def _calc_delta(self, current, previous):
+    _convert = {
+        'memory': __conv_memory_stats,
+        'cpuacct': __conv_cpu_stats,
+        'blkio': __conv_blkio_stats,
+        }
+
+    def __calc_delta(current, previous):
         delta = {}
         for name, value in current.iteritems():
             if isinstance(value, long):
                 delta[name] = value - previous[name]
         return delta
 
+    _diff = {
+        long: lambda a, b: a - b,
+        int: lambda a, b: a - b,
+        float: lambda a, b: a - b,
+        dict: __calc_delta,
+        }
+
+    def _update_delta(self, key, new):
+        if key in self.prev:
+            self.delta[key] = self._diff[new.__class__](new, self.prev[key])
+        self.prev[key] = new
+
     def update(self):
+        # Read stats from cgroups and calculate deltas
         removed_group_names = []
         for name, cgroup_list in self.cgroups.iteritems():
             try:
                 for _cgroup in cgroup_list:
                     _cgroup.update()
                     stats = _cgroup.get_stats()
-                    name = _cgroup.subsystem.NAME
-                    if name == 'memory':
-                        stats = self._trans_memory_stats(stats)
-                    elif name == 'blkio':
-                        stats = self._trans_blkio_stats(stats)
-                    elif name == 'cpuacct':
-                        stats = self._trans_cpu_stats(stats)
-                    if _cgroup in self.prev:
-                        self.delta[_cgroup] = self._calc_delta(stats, self.prev[_cgroup])
-                    self.prev[_cgroup] = stats
+                    stats = self._convert[_cgroup.subsystem.NAME](stats)
+                    self._update_delta(_cgroup, stats)
             except IOError, e:
                 if e.args and e.args[0] == errno.ENOENT:
                     removed_group_names.append(name)
@@ -190,16 +205,12 @@ class CGTopStats:
         for name in removed_group_names:
             del self.cgroups[name]
 
-        # Host total CPU usage
+        # Calculate delta of host total CPU usage
         cpu_total_usage = self.hostcpuinfo.get_total_usage()
-        if 'cpu' in self.prev:
-            self.delta['cpu'] = cpu_total_usage - self.prev['cpu']
-        self.prev['cpu'] = cpu_total_usage
+        self._update_delta('cpu', cpu_total_usage)
 
-        now = time.time()
-        if 'time' in self.prev:
-            self.delta['time'] = now - self.prev['time']
-        self.prev['time'] = now
+        # Calculate delta of time
+        self._update_delta('time', time.time())
 
 class CGTopUI:
     SORTING_KEYS = [
