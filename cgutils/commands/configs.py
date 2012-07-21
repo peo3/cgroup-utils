@@ -18,6 +18,7 @@
 
 import sys
 import optparse
+import json
 
 from cgutils import cgroup
 from cgutils import formatter
@@ -39,13 +40,8 @@ _support_rate = {
     'weight': None,
     }
 
-def print_configs(_cgroup, options):
-    configs = _cgroup.get_configs()
-    defaults = _cgroup.get_default_configs()
-    cg_shown = False
+def print_configs(configs, defaults, options):
     for name, val in configs.iteritems():
-        if not options.show_default and defaults[name] == val:
-            continue
         if 'in_bytes' in name:
             if val == defaults[name]:
                 valstr = ''
@@ -62,26 +58,50 @@ def print_configs(_cgroup, options):
         else:
             ratestr = ''
 
-        if not cg_shown:
-            # Want to show only when at least one of configs is changed
-            print(_cgroup.fullname)
-            cg_shown = True
         print("\t%s=%s%s" % (name, valstr, ratestr))
+
+def collect_changed_configs(_cgroup):
+    configs = _cgroup.get_configs()
+    defaults = _cgroup.get_default_configs()
+
+    ret = {}
+    for name, val in configs.iteritems():
+        if defaults[name] != val:
+            ret[name] = val
+    return ret
 
 def run(args, options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
-    def print_cgroups_recursively(_cgroup):
+    def collect_configs(_cgroup, store):
         if options.debug:
             print(_cgroup)
 
         if options.hide_empty and _cgroup.n_procs == 0:
-            pass
-        else:
-            print_configs(_cgroup, options)
-        for child in _cgroup.childs:
-            print_cgroups_recursively(child)
-    print_cgroups_recursively(root_cgroup)
+            return
+        if options.show_default:
+            if options.json:
+                store[_cgroup.path] = _cgroup.get_configs()
+            else:
+                # To calculate rates, default values are required
+                store[_cgroup.path] = (_cgroup.get_configs(), _cgroup.get_default_configs())
+            return
+        configs = collect_changed_configs(_cgroup)
+        if configs:
+            if options.json:
+                store[_cgroup.path] = configs
+            else:
+                # To calculate rates, default values are required
+                store[_cgroup.path] = (configs, _cgroup.get_default_configs())
+
+    cgroups = {}
+    cgroup.walk_cgroups(root_cgroup, collect_configs, cgroups)
+    if options.json:
+        json.dump(cgroups, sys.stdout, indent=4)
+    else:
+        for name, (configs, defaults) in cgroups.iteritems():
+            print(name)
+            print_configs(configs, defaults, options)
 
 DEFAULT_SUBSYSTEM = 'cpu'
 
@@ -98,4 +118,7 @@ parser.add_option('--show-rate', action='store_true',
 parser.add_option('-e', '--hide-empty', action='store_true',
                   dest='hide_empty', default=False,
                   help='Hide empty groups [False]')
+parser.add_option('--json', action='store_true',
+                  dest='json', default=False,
+                  help='Dump as JSON [False]')
 

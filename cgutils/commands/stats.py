@@ -18,31 +18,33 @@
 
 import sys
 import optparse
+import json
 
 from cgutils import cgroup
 from cgutils import formatter
 from cgutils.version import VERSION
 
-def print_stats(_cgroup):
-    stats = _cgroup.get_stats()
-    for name, val in stats.iteritems():
-        print("\t%s=%s"%(name, str(val)))
-
 def run(args, options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
-    def print_cgroups_recursively(_cgroup):
+    def collect_configs(_cgroup, store):
         if options.debug:
             print(_cgroup)
-
         if options.hide_empty and _cgroup.n_procs == 0:
             pass
         else:
-            print(_cgroup.fullname)
-            print_stats(_cgroup)
-        for child in _cgroup.childs:
-            print_cgroups_recursively(child)
-    print_cgroups_recursively(root_cgroup)
+            store[_cgroup.path] = _cgroup.get_stats()
+
+    cgroups = {}
+    cgroup.walk_cgroups(root_cgroup, collect_configs, cgroups)
+
+    if options.json:
+        json.dump(cgroups, sys.stdout, indent=4)
+    else:
+        for cgname, stats in cgroups.iteritems():
+            print(cgname)
+            for name, val in stats.iteritems():
+                print("\t%s=%s"%(name, str(val)))
 
 DEFAULT_SUBSYSTEM = 'cpu'
 
@@ -53,3 +55,6 @@ parser.add_option('-o', action='store', type='string',
 parser.add_option('-e', '--hide-empty', action='store_true',
                   dest='hide_empty', default=False,
                   help='Hide empty groups [False]')
+parser.add_option('--json', action='store_true',
+                  dest='json', default=False,
+                  help='Dump as JSON [False]')
