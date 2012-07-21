@@ -84,48 +84,10 @@ def print_process(proc, indents, options):
         s += str(indents)
     print(s)
 
-def print_process_tree(indents, pids, options):
-    """
-    tops = [1,2,3]
-    rels = {1: [4,5], 2: [6,7], 3: [], 4: []}
-    """
-    procs = []
-    ppids = []
-    rels = {}
-    for pid in pids:
-        proc = process.Process(pid)
-        if options.hide_kthread and proc.is_kthread():
-            continue
-        procs.append(proc)
-        ppids.append(proc.ppid)
-        if proc.ppid not in rels:
-            rels[proc.ppid] = []
-        rels[proc.ppid].append(proc)
-    ppids = set(ppids)
-    tops = [proc for proc in procs if proc.ppid not in pids]
-    if len(tops) == 0:
-        tops = procs
-
-    def print_recursively(proc_list, _indents):
-        for proc in proc_list:
-            if proc.pid == proc_list[-1].pid:
-                __indents = _indents+['last']
-            else:
-                __indents = _indents+['cont']
-
-            print_process(proc, __indents, options)
-
-            if proc.pid in rels:
-                print_recursively(rels[proc.pid], __indents)
-
-    print_recursively(tops, indents)
-
 def print_cgroup(cg, indents, options):
     cg.update_pids()
     if options.debug:
         print(cg.pids)
-    if options.hide_empty and len(cg.pids) == 0:
-        return
     s = build_indent(indents)
     if options.color:
         s += decorate(cg.name, 'cgroup')
@@ -137,25 +99,98 @@ def print_cgroup(cg, indents, options):
         s += str(indents)
     print(s)
 
-    if options.show_procs:
-        print_process_tree(indents, cg.pids, options)
+class TreeContainer():
+    def __init__(self, this):
+        self.this = this
+
+        self.childs = []
+
+def build_process_container_tree(pids, options):
+    containers = []
+    """
+    tops = [1,2,3]
+    childs = {1: [4,5], 2: [6,7], 3: [], 4: []}
+    """
+    procs = []
+    ppids = []
+    childs = {}
+    for pid in pids:
+        proc = process.Process(pid)
+        procs.append(proc)
+        ppids.append(proc.ppid)
+        if proc.ppid not in childs:
+            childs[proc.ppid] = []
+        childs[proc.ppid].append(proc)
+    ppids = set(ppids)
+    tops = [proc for proc in procs if proc.ppid not in pids]
+    if len(tops) == 0:
+        tops = procs
+
+    def build_tree(proc_list):
+        _containers = []
+        for proc in proc_list:
+            if options.hide_kthread and proc.is_kthread():
+                continue
+
+            cont = TreeContainer(proc)
+
+            if proc.pid in childs:
+                cont.childs = build_tree(childs[proc.pid])
+            _containers.append(cont)
+        return _containers
+
+    for top_proc in tops:
+        if options.hide_kthread and top_proc.is_kthread():
+            continue
+
+        cont = TreeContainer(top_proc)
+        if top_proc.pid in childs:
+            cont.childs = build_tree(childs[top_proc.pid])
+        containers.append(cont)
+
+    return containers
 
 def run(args, options):
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
-    def print_cgroups_recursively(cg, indents):
+    def build_container_tree(container):
+        _cgroup = container.this
+        for child in _cgroup.childs:
+            child.update_pids()
+            if options.hide_empty and \
+               len(child.childs) == 0 and \
+               len(child.pids) == 0:
+                continue
+            cont = TreeContainer(child)
+            container.childs.append(cont)
+            build_container_tree(cont)
+        if not options.show_procs:
+            return
+        _cgroup.update_pids()
         if options.debug:
-            print(cg)
+            print(_cgroup.pids)
+        procs = build_process_container_tree(_cgroup.pids, options)
+        container.childs.extend(procs)
 
-        print_cgroup(cg, indents, options)
-        for child in cg.childs:
-            if child == cg.childs[-1]:
+    root_container = TreeContainer(root_cgroup)
+    build_container_tree(root_container)
+
+    def print_containers_recursively(cont, indents):
+        if options.debug:
+            print(cont)
+
+        if isinstance(cont.this, cgroup.CGroup):
+            print_cgroup(cont.this, indents, options)
+        else:
+            print_process(cont.this, indents, options)
+        for child in cont.childs:
+            if child == cont.childs[-1]:
                 _indents = indents+['last']
             else:
                 _indents = indents+['cont']
-            print_cgroups_recursively(child, _indents)
+            print_containers_recursively(child, _indents)
 
-    print_cgroups_recursively(root_cgroup, [])
+    print_containers_recursively(root_container, [])
 
 DEFAULT_SUBSYSTEM = 'cpu'
 
