@@ -39,6 +39,14 @@ class Process(object):
         else:
             self.cmdline = self.name
 
+        autogroup = readfile('/proc/%d/autogroup' % pid)
+        if autogroup:
+            # Ex. "/autogroup-324 nice 0"
+            self.autogroup = autogroup.split(' ')[0].replace('/', '')
+        else:
+            # kthreads don't belong to any autogroup
+            self.autogroup = None
+
     def _get_fullname(self):
         cmdline = readfile('/proc/%d/cmdline'%(self.pid,))
         if '\0' in cmdline:

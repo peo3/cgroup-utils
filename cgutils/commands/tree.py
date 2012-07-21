@@ -51,12 +51,14 @@ def build_indent(indents):
 
 DECORATER = {
     'red':       lambda s: '\033[31m'+s+'\033[0m',
+    'green':     lambda s: '\033[32m'+s+'\033[0m',
     'bold':      lambda s: '\033[1m'+s+'\033[0m',
     'lightblue': lambda s: '\033[95m'+s+'\033[0m',
     'underline': lambda s: '\033[4m'+s+'\033[0m',
     'blink':     lambda s: '\033[5m'+s+'\033[0m',
     'kthread':       lambda s: '['+s+']',
     'cgroup':        lambda s: DECORATER['bold'](DECORATER['red'](s)),
+    'autogroup':     lambda s: DECORATER['bold'](DECORATER['green'](s)),
     'groupleader':   lambda s: DECORATER['lightblue'](s),
     'sessionleader': lambda s: DECORATER['underline'](s),
     'running':       lambda s: DECORATER['blink'](s),
@@ -95,6 +97,25 @@ def print_cgroup(cg, indents, options):
         s += cg.name
     if options.show_nprocs:
         s += '(%d)'%(cg.n_procs,)
+    if options.debug:
+        s += str(indents)
+    print(s)
+
+class AutoGroup():
+    def __init__(self, name, pids):
+        self.name = name
+        self.pids = pids
+
+def print_autogroup(autogroup, indents, options):
+    if options.debug:
+        print(autogroup.pids)
+    s = build_indent(indents)
+    if options.color:
+        s += decorate(autogroup.name, 'autogroup')
+    else:
+        s += autogroup.name
+    if options.show_nprocs:
+        s += "(%d)" % len(autogroup.pids)
     if options.debug:
         s += str(indents)
     print(s)
@@ -150,8 +171,36 @@ def build_process_container_tree(pids, options):
 
     return containers
 
+def build_autogroup_container_tree(pids, options):
+    containers = []
+    groups = {}
+    for pid in pids:
+        proc = process.Process(pid)
+        if proc.autogroup not in groups:
+            groups[proc.autogroup] = []
+        groups[proc.autogroup].append(pid)
+
+    for name, pids in groups.iteritems():
+        if name is None:
+            # Want to put kthreads at the tail
+            continue
+        group = AutoGroup(name, pids)
+        cont = TreeContainer(group)
+        cont.childs = build_process_container_tree(group.pids, options)
+        containers.append(cont)
+
+    if None in groups and not options.hide_kthread:
+        containers = build_process_container_tree(groups[None], options)
+
+    return containers
+
 def run(args, options):
+    if options.show_autogroup and options.target_subsystem != 'cpu':
+        print("Error: autogroup is meaningless for %s subsystem" % options.target_subsystem)
+        sys.exit(1)
+
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
+
 
     def build_container_tree(container):
         _cgroup = container.this
@@ -163,14 +212,23 @@ def run(args, options):
                 continue
             cont = TreeContainer(child)
             container.childs.append(cont)
+
             build_container_tree(cont)
+
         if not options.show_procs:
             return
+
         _cgroup.update_pids()
         if options.debug:
             print(_cgroup.pids)
-        procs = build_process_container_tree(_cgroup.pids, options)
-        container.childs.extend(procs)
+
+        if options.show_autogroup and container == root_container:
+            # Autogroup is effective only when processes don't belong to any cgroup
+            groups = build_autogroup_container_tree(_cgroup.pids, options)
+            container.childs.extend(groups)
+        else:
+            procs = build_process_container_tree(_cgroup.pids, options)
+            container.childs.extend(procs)
 
     root_container = TreeContainer(root_cgroup)
     build_container_tree(root_container)
@@ -181,8 +239,10 @@ def run(args, options):
 
         if isinstance(cont.this, cgroup.CGroup):
             print_cgroup(cont.this, indents, options)
-        else:
+        elif isinstance(cont.this, process.Process):
             print_process(cont.this, indents, options)
+        else:
+            print_autogroup(cont.this, indents, options)
         for child in cont.childs:
             if child == cont.childs[-1]:
                 _indents = indents+['last']
@@ -216,4 +276,7 @@ parser.add_option('-n', '--show-nprocs', action='store_true',
 parser.add_option('-t', '--show-procs', action='store_true',
                   dest='show_procs', default=False,
                   help='Show processes in each cgroup [False]')
+parser.add_option('-a', '--show-autogroup', action='store_true',
+                  dest='show_autogroup', default=False,
+                  help='Show groups by autogroup feature [False]')
 
