@@ -84,9 +84,24 @@ class SubsystemStatus(dict):
             path = items[1]
             opts = items[3].split(',')
 
+            name = None
             for opt in opts:
                 if opt in self:
-                    self.paths[opt] = path
+                    name = opt
+                    self.paths[name] = path
+                if 'name=' in opt:
+                    # We treat name=XXX as its name
+                    name = opt
+                    self.paths[name] = path
+                    self[name] = {}
+                    self[name]['name'] = name
+                    self[name]['enabled'] = True
+                    self[name]['hierarchy'] = 0
+                    self[name]['num_cgroups'] = 0
+            # release_agent= may appear before name=
+            for opt in opts:
+                if 'release_agent=' in opt:
+                    self[name]['release_agent'] = opt.replace('release_agent=', '')
 
     def _update(self):
         self._parse_proc_cgroups()
@@ -426,6 +441,12 @@ class SubsystemDevices(Subsystem):
         'deny': None,
     }
 
+class SubsystemName(Subsystem):
+    NAME = 'name'
+    STATS = {}
+    CONFIGS = {}
+    CONTROLS = {}
+
 subsystem_name2class = {
     'cpu':SubsystemCpu,
     'cpuacct':SubsystemCpuacct,
@@ -436,6 +457,10 @@ subsystem_name2class = {
     'net_cls':SubsystemNetCls,
     'devices':SubsystemDevices,
 }
+def get_subsystem(name):
+    if 'name=' in name:
+        return SubsystemName
+    return subsystem_name2class[name]
 
 class CGroup(object):
     STATS = {
@@ -540,7 +565,7 @@ def scan_cgroups_recursively0(subsystem, fullpath, mount_point, filters):
     relpath = fullpath.replace(mount_point, '')
     relpath = '/' if relpath == '' else relpath
     cgroup = CGroup(mount_point, relpath,
-                    subsystem_name2class[subsystem](fullpath, filters))
+                    get_subsystem(subsystem)(fullpath, filters))
 
     _childs = []
     for _file in os.listdir(fullpath):
@@ -584,6 +609,6 @@ def get_cgroup(_path):
     else:
         raise StandardError('Invalid path: ' % _path)
     path = _path.replace(mount_point, '')
-    subsys = subsystem_name2class[name](mount_point)
+    subsys = get_subsystem(name)(mount_point)
 
     return CGroup(mount_point, path, subsys)

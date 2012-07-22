@@ -201,6 +201,8 @@ def run(args, options):
 
     root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
 
+    if options.debug:
+        print(root_cgroup)
 
     def build_container_tree(container):
         _cgroup = container.this
