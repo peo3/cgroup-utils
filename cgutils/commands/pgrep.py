@@ -43,11 +43,19 @@ def run(args, options):
             if pid == mypid:
                 continue
             proc = process.Process(pid)
+
             if options.cmdline:
                 comp = proc.cmdline
             else:
                 comp = proc.name
-            if procname in comp:
+
+            if options.ignore_case:
+                comp = comp.lower()
+                _procname = procname.lower()
+            else:
+                _procname = procname
+
+            if _procname in comp:
                 if options.show_name:
                     if options.cmdline:
                         output = "%d %s" % (proc.pid, proc.cmdline)
@@ -71,3 +79,6 @@ parser.add_option('-f', '--cmdline', action='store_true',
 parser.add_option('-l', '--show-name', action='store_true',
                   dest='show_name', default=False,
                   help='Show name of process [False]')
+parser.add_option('-i', '--ignore-case', action='store_true',
+                  dest='ignore_case', default=False,
+                  help='Ignore case [False]')
