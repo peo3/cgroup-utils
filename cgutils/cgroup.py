@@ -470,6 +470,7 @@ class CGroup(object):
     CONFIGS = {
         'release_agent': '',
         'notify_on_release': 1,
+        'cgroup.clone_children': 0,
     }
     CONTROLS = {
         'cgroup.event_control': None,
