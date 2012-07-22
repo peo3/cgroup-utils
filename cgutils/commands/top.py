@@ -69,10 +69,10 @@ class CGTopStats:
         self.delta['cpu'] = 0
         self.delta['time'] = 0
 
-    def _get_skelton_stats(self, cg):
+    def _get_skelton_stats(self, name, n_procs):
         return {
-            'name': cg.fullname,
-            'n_procs': cg.n_procs,
+            'name': name,
+            'n_procs': n_procs,
             'cpu.user': 0.0,
             'cpu.system': 0.0,
             'bio.read':  0.0,
@@ -86,7 +86,7 @@ class CGTopStats:
         cgroup_stats = []
         for name, cgroup_list in self.cgroups.iteritems():
             cpu = mem = bio = None
-            proc_exists = False
+            pids = []
             for _cgroup in cgroup_list:
                 subsys_name = _cgroup.subsystem.NAME
                 if subsys_name == 'cpuacct':
@@ -95,14 +95,15 @@ class CGTopStats:
                     mem = _cgroup
                 elif subsys_name == 'blkio':
                     bio = _cgroup
-                else: pass
-                if _cgroup.n_procs > 0:
-                    proc_exists = True
-            if self.options.hide_empty and not proc_exists:
+                _cgroup.update_pids()
+                pids += _cgroup.pids
+
+            n_procs = len(set(pids))
+            if self.options.hide_empty and n_procs == 0:
                 continue
             
             active = False
-            stats = self._get_skelton_stats(_cgroup)
+            stats = self._get_skelton_stats(_cgroup.fullname, n_procs)
 
             if cpu:
                 def percent(delta):
