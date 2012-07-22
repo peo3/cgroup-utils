@@ -12,6 +12,11 @@ while read name _ _ enabled; do
     fi
 done < /proc/cgroups
 
+named_cgroup=$(grep cgroup /proc/mounts | egrep -o -e 'name=[^,\ ]*')
+if [ -n "$named_cgroup" ]; then
+	enabled_cgroups="$enabled_cgroups $named_cgroup"
+fi
+
 test_run()
 {
     $* >/dev/null 2>$ERRFILE
