@@ -39,7 +39,10 @@ class Process(object):
         else:
             self.cmdline = self.name
 
-        autogroup = readfile('/proc/%d/autogroup' % pid)
+        if os.path.exists('/proc/%d/autogroup' % pid):
+            autogroup = readfile('/proc/%d/autogroup' % pid)
+        else:
+            autogroup = None
         if autogroup:
             # Ex. "/autogroup-324 nice 0"
             self.autogroup = autogroup.split(' ')[0].replace('/', '')
