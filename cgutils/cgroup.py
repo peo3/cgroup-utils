@@ -507,9 +507,7 @@ class CGroup(object):
         self.childs = []
 
     def __str__(self):
-        return "%s: subsystem=%s, name=%s, fullname=%s, mount_point=%s, path=%s, depth=%d" % \
-               (self.__class__, self.subsystem, self.name, self.fullname,
-                self.mount_point, self.path, self.depth)
+        return "<CGroup: %s (%s)>" % (self.fullname, self.subsystem.NAME)
 
     def update_pids(self):
         pids = readfile(self.paths['cgroup.procs']).split('\n')[:-1]

@@ -126,6 +126,9 @@ class TreeContainer():
 
         self.childs = []
 
+    def __str__(self):
+        return str((str(self.this), self.childs))
+
 def build_process_container_tree(pids, options):
     containers = []
     """
@@ -184,13 +187,15 @@ def build_autogroup_container_tree(pids, options):
         if name is None:
             # Want to put kthreads at the tail
             continue
+        if options.debug:
+            print(name + str(pids))
         group = AutoGroup(name, pids)
         cont = TreeContainer(group)
         cont.childs = build_process_container_tree(group.pids, options)
         containers.append(cont)
 
     if None in groups and not options.hide_kthread:
-        containers = build_process_container_tree(groups[None], options)
+        containers += build_process_container_tree(groups[None], options)
 
     return containers
 
