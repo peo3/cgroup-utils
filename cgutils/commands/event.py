@@ -19,6 +19,7 @@
 # Copyright (c) 2012 peo3 <peo314159265@gmail.com>
 #
 
+from __future__ import with_statement
 import sys
 import os, os.path
 import optparse

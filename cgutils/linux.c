@@ -32,6 +32,13 @@
 #include <unistd.h>
 #include <sys/eventfd.h>
 
+// For older glibc-headers
+#ifndef EFD_SEMAPHORE
+# define EFD_SEMAPHORE 1
+# define EFD_CLOEXEC 02000000
+# define EFD_NONBLOCK 04000
+#endif
+
 static PyObject *
 linux_eventfd(PyObject *self, PyObject *args)
 {
