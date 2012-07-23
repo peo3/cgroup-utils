@@ -26,7 +26,7 @@ except ImportError:
     # For python 2.5 or older
     class Multiprocessing:
         def cpu_count(self):
-            return readfile('/proc/cpuinfo').count('CPU')
+            return readfile('/proc/cpuinfo').count('processor')
     multiprocessing = Multiprocessing()
 
 def readfile(filepath):
