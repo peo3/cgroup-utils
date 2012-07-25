@@ -6,7 +6,7 @@ ERRFILE=/tmp/.cgroup-utils.stderr
 enabled_cgroups=
 while read name _ _ enabled; do
     if [ $enabled = 1 ]; then
-        if [ $name != perf_event ]; then
+        if [ $name != perf_event -a $name != debug ]; then
             enabled_cgroups="$enabled_cgroups $name"
         fi
     fi
