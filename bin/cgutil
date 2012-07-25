@@ -45,17 +45,12 @@ mod = __import__('cgutils.commands' + '.' + cmd, fromlist=[cmd,])
 #
 # Run subcommand
 #
-# subcommand has to have a parser (= optparse.OptionParser(...)) object
-# and run() method.
-parser = mod.parser
-# common options
-parser.add_option('--debug', action='store_true', dest='debug',
-                  default=False, help='Show debug messages [False]')
-usage = "%%prog %s [options]" % cmd
-parser.usage = usage
+parser = mod.Command.parser
 options, args = parser.parse_args()
 
 if options.debug:
     print options
 
-mod.run(args[1:], options)
+cmd = mod.Command(options)
+cmd.run(args[1:])
+

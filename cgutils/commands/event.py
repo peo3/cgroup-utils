@@ -22,69 +22,67 @@
 from __future__ import with_statement
 import sys
 import os, os.path
-import optparse
 
 from cgutils import cgroup
-from cgutils.version import VERSION
+from cgutils import command
 
-def readfile(target_file):
-    with open(target_file) as f:
-        return f.read()
+class Command(command.Command):
+    NAME = 'event'
 
-def parse_value(val):
-    if val[-1] == 'K':
-        return long(val.replace('M', '')) * 1024
-    elif val[-1] == 'M':
-        return long(val.replace('M', '')) * 1024 * 1024
-    elif val[-1] == 'G':
-        return long(val.replace('M', '')) * 1024 * 1024 * 1024
-    else:
-        return long(val)
+    def _readfile(self, target_file):
+        with open(target_file) as f:
+            return f.read()
 
+    def _parse_value(self, val):
+        if val[-1] == 'K':
+            return long(val.replace('M', '')) * 1024
+        elif val[-1] == 'M':
+            return long(val.replace('M', '')) * 1024 * 1024
+        elif val[-1] == 'G':
+            return long(val.replace('M', '')) * 1024 * 1024 * 1024
+        else:
+            return long(val)
 
-def run(args, options):
-    global parser
-    if len(args) < 2:
-        parser.usage = 'cgutil event [options] <target_file> <threshold>'
-        parser.error('Less arguments: ' + ' '.join(args))
+    def run(self, args):
+        if len(args) < 2:
+            self.parser.usage = 'cgutil event [options] <target_file> <threshold>'
+            self.parser.error('Less arguments: ' + ' '.join(args))
 
-    if options.debug:
-        print args
+        if self.options.debug:
+            print args
 
-    target_file = args[0]
-    threshold = args[1]
+        target_file = args[0]
+        threshold = args[1]
 
-    if not os.path.exists(target_file):
-        print "File not found: %s" % target_file
-        sys.exit(1)
+        if not os.path.exists(target_file):
+            print "File not found: %s" % target_file
+            sys.exit(1)
 
-    cg = cgroup.get_cgroup(os.path.dirname(target_file))
-    listener = cgroup.EventListener(cg, target_file)
+        cg = cgroup.get_cgroup(os.path.dirname(target_file))
+        listener = cgroup.EventListener(cg, target_file)
 
-    cur = long(readfile(target_file))
-    if options.debug:
-        print "Before: %d (%d MB)" % (cur, cur/1024/1024)
+        cur = long(self._readfile(target_file))
+        if self.options.debug:
+            print "Before: %d (%d MB)" % (cur, cur/1024/1024)
 
-    if threshold[0] == '+':
-        threshold = threshold.replace('+', '')
-        threshold = cur + parse_value(threshold)
-    elif threshold[0] == '-':
-        threshold = threshold.replace('-', '')
-        threshold = cur - parse_value(threshold)
-    else:
-        threshold = parse_value(threshold)
+        if threshold[0] == '+':
+            threshold = threshold.replace('+', '')
+            threshold = cur + self._parse_value(threshold)
+        elif threshold[0] == '-':
+            threshold = threshold.replace('-', '')
+            threshold = cur - self._parse_value(threshold)
+        else:
+            threshold = self._parse_value(threshold)
 
-    listener.set_threshold(threshold)
+        listener.set_threshold(threshold)
 
-    if options.debug:
-        print "Threshold: %d (%d MB)" % (threshold, threshold/1024/1024)
+        if self.options.debug:
+            print "Threshold: %d (%d MB)" % (threshold, threshold/1024/1024)
 
-    ret = listener.wait()
-    if not os.path.exists(cg.fullpath):
-        print('The cgroup seems to have beeen removed.')
-        sys.exit(1)
-    if options.debug:
-        cur = long(readfile(target_file))
-        print "After: %d (%d MB)" % (cur, cur/1024/1024)
-
-parser = optparse.OptionParser(version='cgutil '+VERSION)
+        ret = listener.wait()
+        if not os.path.exists(cg.fullpath):
+            print('The cgroup seems to have beeen removed.')
+            sys.exit(1)
+        if self.options.debug:
+            cur = long(self._readfile(target_file))
+            print "After: %d (%d MB)" % (cur, cur/1024/1024)

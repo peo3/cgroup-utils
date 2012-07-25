@@ -19,66 +19,66 @@
 from __future__ import with_statement
 import sys
 import os, os.path
-import optparse
 
 from cgutils import cgroup
+from cgutils import command
 from cgutils import process
-from cgutils import formatter
-from cgutils.version import VERSION
 
-def run(args, options):
-    global parser
-    if len(args) < 1:
-        parser.usage = 'cgutil pgrep [options] <proc_name>'
-        parser.error('Less arguments: ' + ' '.join(args))
+class Command(command.Command):
+    NAME = 'pgrep'
+    DEFAULT_SUBSYSTEM = 'cpu'
 
-    procname = args[0]
-    root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
+    parser = command.Command.parser
+    parser.add_option('-o', action='store', type='string',
+                      dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
+                      help='Specify a subsystem [cpu]')
+    parser.add_option('-f', '--cmdline', action='store_true',
+                      dest='cmdline', default=False,
+                      help='Compare with entire cmdline of process [False]')
+    parser.add_option('-l', '--show-name', action='store_true',
+                      dest='show_name', default=False,
+                      help='Show name of process [False]')
+    parser.add_option('-i', '--ignore-case', action='store_true',
+                      dest='ignore_case', default=False,
+                      help='Ignore case [False]')
 
-    def print_matched(cg, dummy):
-        mypid = os.getpid()
-        cg.update_pids()
-        procs = []
-        for pid in cg.pids:
-            if pid == mypid:
-                continue
-            proc = process.Process(pid)
+    def run(self, args):
+        if len(args) < 1:
+            self.parser.usage = 'cgutil pgrep [options] <proc_name>'
+            self.parser.error('Less arguments: ' + ' '.join(args))
 
-            if options.cmdline:
-                comp = proc.cmdline
-            else:
-                comp = proc.name
+        procname = args[0]
+        root_cgroup = cgroup.scan_cgroups(self.options.target_subsystem)
 
-            if options.ignore_case:
-                comp = comp.lower()
-                _procname = procname.lower()
-            else:
-                _procname = procname
+        def print_matched(cg, dummy):
+            mypid = os.getpid()
+            cg.update_pids()
+            procs = []
+            for pid in cg.pids:
+                if pid == mypid:
+                    continue
+                proc = process.Process(pid)
 
-            if _procname in comp:
-                if options.show_name:
-                    if options.cmdline:
-                        output = "%d %s" % (proc.pid, proc.cmdline)
-                    else:
-                        output = "%d %s" % (proc.pid, proc.name)
+                if self.options.cmdline:
+                    comp = proc.cmdline
                 else:
-                    output = str(proc.pid)
-                print('%s: %s'%(cg.path, output))
+                    comp = proc.name
 
-    cgroup.walk_cgroups(root_cgroup, print_matched, None)
+                if self.options.ignore_case:
+                    comp = comp.lower()
+                    _procname = procname.lower()
+                else:
+                    _procname = procname
 
-DEFAULT_SUBSYSTEM = 'cpu'
+                if _procname in comp:
+                    if self.options.show_name:
+                        if self.options.cmdline:
+                            output = "%d %s" % (proc.pid, proc.cmdline)
+                        else:
+                            output = "%d %s" % (proc.pid, proc.name)
+                    else:
+                        output = str(proc.pid)
+                    print('%s: %s'%(cg.path, output))
 
-parser = optparse.OptionParser(version='cgshowconfigs '+VERSION)
-parser.add_option('-o', action='store', type='string',
-                  dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
-                  help='Specify a subsystem [cpu]')
-parser.add_option('-f', '--cmdline', action='store_true',
-                  dest='cmdline', default=False,
-                  help='Compare with entire cmdline of process [False]')
-parser.add_option('-l', '--show-name', action='store_true',
-                  dest='show_name', default=False,
-                  help='Show name of process [False]')
-parser.add_option('-i', '--ignore-case', action='store_true',
-                  dest='ignore_case', default=False,
-                  help='Ignore case [False]')
+        cgroup.walk_cgroups(root_cgroup, print_matched, None)
+

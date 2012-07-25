@@ -22,14 +22,13 @@
 import sys
 import curses
 import select
-import optparse
 import time
 import errno
 
 from cgutils import cgroup
+from cgutils import command
 from cgutils import host
 from cgutils import formatter
-from cgutils.version import VERSION
 
 class CGTopStats:
     SUBSYSTEMS = ['cpuacct', 'blkio', 'memory']
@@ -485,37 +484,40 @@ class CGTopUI:
             self.win.insstr(self.height - 1, 0, status_msg, curses.A_BOLD)
         self.win.refresh()
 
-def run_window(win, options):
-    cgstats = CGTopStats(options)
-    ui = CGTopUI(win, cgstats, options)
-    ui.run()
+class Command(command.Command):
+    NAME = 'top'
 
-def run(args, options):
-    if options.batch:
-        return run_window(None, options)
-    else:
-        return curses.wrapper(run_window, options)
+    parser = command.Command.parser
+    parser.add_option('-i', '--hide-inactive', action='store_true',
+                      dest='hide_inactive', default=False,
+                      help='Hide inactive groups [False]')
+    parser.add_option('-z', '--hide-zero', action='store_true',
+                      dest='hide_zero', default=False,
+                      help='Hide zero numbers [False]')
+    parser.add_option('-e', '--hide-empty', action='store_true',
+                      dest='hide_empty', default=False,
+                      help='Hide empty groups [False]')
+    parser.add_option('-r', '--hide-root', action='store_true',
+                      dest='hide_root', default=False,
+                      help='Hide the root group [False]')
+    parser.add_option('-b', '--batch', action='store_true', dest='batch',
+                      help='non-interactive mode')
+    parser.add_option('-n', '--iter', type='int', dest='iterations',
+                      metavar='NUM',
+                      help='Number of iterations before ending [infinite]')
+    parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
+                      help='Delay between iterations [1 second]',
+                      metavar='SEC', default=1)
 
-USAGE=''
-parser = optparse.OptionParser(usage=USAGE, version='cgtop '+VERSION)
-parser.add_option('-i', '--hide-inactive', action='store_true',
-                  dest='hide_inactive', default=False,
-                  help='Hide inactive groups [False]')
-parser.add_option('-z', '--hide-zero', action='store_true',
-                  dest='hide_zero', default=False,
-                  help='Hide zero numbers [False]')
-parser.add_option('-e', '--hide-empty', action='store_true',
-                  dest='hide_empty', default=False,
-                  help='Hide empty groups [False]')
-parser.add_option('-r', '--hide-root', action='store_true',
-                  dest='hide_root', default=False,
-                  help='Hide the root group [False]')
-parser.add_option('-b', '--batch', action='store_true', dest='batch',
-                  help='non-interactive mode')
-parser.add_option('-n', '--iter', type='int', dest='iterations',
-                  metavar='NUM',
-                  help='Number of iterations before ending [infinite]')
-parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
-                  help='Delay between iterations [1 second]',
-                  metavar='SEC', default=1)
+
+    def _run_window(self, win):
+        cgstats = CGTopStats(self.options)
+        ui = CGTopUI(win, cgstats, self.options)
+        ui.run()
+
+    def run(self, args):
+        if self.options.batch:
+            return self._run_window(None)
+        else:
+            return curses.wrapper(self._run_window)
 

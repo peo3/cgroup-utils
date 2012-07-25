@@ -17,108 +17,109 @@
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
 
 import sys
-import optparse
 import json
 
 from cgutils import cgroup
+from cgutils import command
 from cgutils import formatter
-from cgutils.version import VERSION
 from cgutils import host
 
-def calc_memory_rate(val):
-    meminfo = host.MemInfo()
-    meminfo.update()
-    return float(val) / meminfo['MemTotal']
+class Command(command.Command):
+    NAME = 'configs'
+    DEFAULT_SUBSYSTEM = 'cpu'
 
-_support_rate = {
-    'limit_in_bytes': calc_memory_rate,
-    'soft_limit_in_bytes': calc_memory_rate,
-    'memsw.limit_in_bytes': calc_memory_rate,
-    'kmem.tcp.limit_in_bytes': calc_memory_rate,
-    'swappiness': None,
-    'shares': None,
-    'weight': None,
-    }
+    parser = command.Command.parser
+    parser.add_option('-o', action='store', type='string',
+                      dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
+                      help='Specify a subsystem [cpu]')
+    parser.add_option('--show-default', action='store_true',
+                      dest='show_default', default=False,
+                      help='Show every parameters including default values [False]')
+    parser.add_option('--show-rate', action='store_true',
+                      dest='show_rate', default=False,
+                      help='Show rate value to default/current values [False]')
+    parser.add_option('-e', '--hide-empty', action='store_true',
+                      dest='hide_empty', default=False,
+                      help='Hide empty groups [False]')
+    parser.add_option('--json', action='store_true',
+                      dest='json', default=False,
+                      help='Dump as JSON [False]')
 
-def print_configs(configs, defaults, options):
-    for name, val in configs.iteritems():
-        if 'in_bytes' in name:
-            if val == defaults[name]:
-                valstr = ''
+    def calc_memory_rate(val):
+        meminfo = host.MemInfo()
+        meminfo.update()
+        return float(val) / meminfo['MemTotal']
+
+    _support_rate = {
+        'limit_in_bytes': calc_memory_rate,
+        'soft_limit_in_bytes': calc_memory_rate,
+        'memsw.limit_in_bytes': calc_memory_rate,
+        'kmem.tcp.limit_in_bytes': calc_memory_rate,
+        'swappiness': None,
+        'shares': None,
+        'weight': None,
+        }
+
+    def _print_configs(self, configs, defaults):
+        for name, val in configs.iteritems():
+            if 'in_bytes' in name:
+                if val == defaults[name]:
+                    valstr = ''
+                else:
+                    valstr = formatter.byte(val)
             else:
-                valstr = formatter.byte(val)
+                valstr = str(val)
+            if self.options.show_rate and name in self._support_rate:
+                if self._support_rate[name]:
+                    rate = self._support_rate[name](val)
+                else:
+                    rate = float(val) / defaults[name]
+                ratestr = ' (%s)' % formatter.percent(rate)
+            else:
+                ratestr = ''
+
+            print("\t%s=%s%s" % (name, valstr, ratestr))
+
+    def _collect_changed_configs(self, _cgroup):
+        configs = _cgroup.get_configs()
+        defaults = _cgroup.get_default_configs()
+
+        ret = {}
+        for name, val in configs.iteritems():
+            if defaults[name] != val:
+                ret[name] = val
+        return ret
+
+    def run(self, args):
+        root_cgroup = cgroup.scan_cgroups(self.options.target_subsystem)
+
+        def collect_configs(_cgroup, store):
+            if self.options.debug:
+                print(_cgroup)
+
+            if self.options.hide_empty and _cgroup.n_procs == 0:
+                return
+            if self.options.show_default:
+                if self.options.json:
+                    store[_cgroup.path] = _cgroup.get_configs()
+                else:
+                    # To calculate rates, default values are required
+                    store[_cgroup.path] = (_cgroup.get_configs(), _cgroup.get_default_configs())
+                return
+            configs = self._collect_changed_configs(_cgroup)
+            if configs:
+                if self.options.json:
+                    store[_cgroup.path] = configs
+                else:
+                    # To calculate rates, default values are required
+                    store[_cgroup.path] = (configs, _cgroup.get_default_configs())
+
+        cgroups = {}
+        cgroup.walk_cgroups(root_cgroup, collect_configs, cgroups)
+        if self.options.json:
+            json.dump(cgroups, sys.stdout, indent=4)
         else:
-            valstr = str(val)
-        if options.show_rate and name in _support_rate:
-            if _support_rate[name]:
-                rate = _support_rate[name](val)
-            else:
-                rate = float(val) / defaults[name]
-            ratestr = ' (%s)' % formatter.percent(rate)
-        else:
-            ratestr = ''
-
-        print("\t%s=%s%s" % (name, valstr, ratestr))
-
-def collect_changed_configs(_cgroup):
-    configs = _cgroup.get_configs()
-    defaults = _cgroup.get_default_configs()
-
-    ret = {}
-    for name, val in configs.iteritems():
-        if defaults[name] != val:
-            ret[name] = val
-    return ret
-
-def run(args, options):
-    root_cgroup = cgroup.scan_cgroups(options.target_subsystem)
-
-    def collect_configs(_cgroup, store):
-        if options.debug:
-            print(_cgroup)
-
-        if options.hide_empty and _cgroup.n_procs == 0:
-            return
-        if options.show_default:
-            if options.json:
-                store[_cgroup.path] = _cgroup.get_configs()
-            else:
-                # To calculate rates, default values are required
-                store[_cgroup.path] = (_cgroup.get_configs(), _cgroup.get_default_configs())
-            return
-        configs = collect_changed_configs(_cgroup)
-        if configs:
-            if options.json:
-                store[_cgroup.path] = configs
-            else:
-                # To calculate rates, default values are required
-                store[_cgroup.path] = (configs, _cgroup.get_default_configs())
-
-    cgroups = {}
-    cgroup.walk_cgroups(root_cgroup, collect_configs, cgroups)
-    if options.json:
-        json.dump(cgroups, sys.stdout, indent=4)
-    else:
-        for name, (configs, defaults) in cgroups.iteritems():
-            print(name)
-            print_configs(configs, defaults, options)
-
-DEFAULT_SUBSYSTEM = 'cpu'
-
-parser = optparse.OptionParser(version='cgshowconfigs '+VERSION)
-parser.add_option('-o', action='store', type='string',
-                  dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
-                  help='Specify a subsystem [cpu]')
-parser.add_option('--show-default', action='store_true',
-                  dest='show_default', default=False,
-                  help='Show every parameters including default values [False]')
-parser.add_option('--show-rate', action='store_true',
-                  dest='show_rate', default=False,
-                  help='Show rate value to default/current values [False]')
-parser.add_option('-e', '--hide-empty', action='store_true',
-                  dest='hide_empty', default=False,
-                  help='Hide empty groups [False]')
-parser.add_option('--json', action='store_true',
-                  dest='json', default=False,
-                  help='Dump as JSON [False]')
+            for name, (configs, defaults) in cgroups.iteritems():
+                print(name)
+                self._print_configs(configs, defaults)
 
