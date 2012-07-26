@@ -87,7 +87,7 @@ class CGTopStats:
             cpu = mem = bio = None
             pids = []
             for _cgroup in cgroup_list:
-                subsys_name = _cgroup.subsystem.NAME
+                subsys_name = _cgroup.subsystem.name
                 if subsys_name == 'cpuacct':
                     cpu = _cgroup
                 elif subsys_name == 'memory':
@@ -196,7 +196,9 @@ class CGTopStats:
                 for _cgroup in cgroup_list:
                     _cgroup.update()
                     stats = _cgroup.get_stats()
-                    stats = self._convert[_cgroup.subsystem.NAME](stats)
+                    if self.options.debug:
+                        print(stats)
+                    stats = self._convert[_cgroup.subsystem.name](stats)
                     self._update_delta(_cgroup, stats)
             except IOError, e:
                 if e.args and e.args[0] == errno.ENOENT:

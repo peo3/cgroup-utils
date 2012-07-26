@@ -246,58 +246,12 @@ class PercpuStat(dict):
 # The base class of subsystems
 #
 class Subsystem(object):
-    PARSERS = {
-        int:  lambda path: int(readfile(path)),
-        long: lambda path: long(readfile(path)),
-        str:  lambda path: readfile(path).strip(),
-        SimpleStat: SimpleStat.parse,
-        BlkioStat: BlkioStat.parse,
-        DevicesStat: DevicesStat.parse,
-        NumaStat: NumaStat.parse,
-        PercpuStat: PercpuStat.parse,
-    }
-    def __init__(self, path, filters=None):
-        self.path = path
-        self.filters = filters
+    CONFIGS = {}
+    STATS = {}
+    CONTROLS = {}
 
-        if self.filters:
-            self.configs = {}
-            self.stats   = {}
-            for f in self.filters:
-                if f in self.CONFIGS:
-                    self.configs[f] = self.CONFIGS[f]
-                elif f in self.STATS:
-                    self.stats[f] = self.STATS[f]
-        else:
-            self.configs = self.CONFIGS
-            self.stats   = self.STATS
-        
-        self.param2path = {}
-        for param in self.configs.keys()+self.stats.keys():
-            attrname = 'path_'+param.replace('.', '_')
-            _path = os.path.join(self.path, self.NAME+'.'+param)
-            setattr(self, attrname, _path)
-            self.param2path[param] = _path
-
-    def get_configs(self):
-        configs = {}
-        for config, default in self.configs.iteritems():
-            cls = default.__class__
-            path = self.param2path[config]
-            if os.path.exists(path):
-                configs[config] = self.PARSERS[cls](path)
-        return configs
-
-    def get_default_configs(self):
-        return self.CONFIGS.copy()
-
-    def get_stats(self):
-        stats = {}
-        for stat, cls in self.stats.iteritems():
-            path = self.param2path[stat]
-            if os.path.exists(path):
-                stats[stat] = self.PARSERS[cls](path)
-        return stats
+    def __init__(self):
+        self.name = self.NAME
 
 #
 # Classes of each subsystem
@@ -415,13 +369,6 @@ class SubsystemFreezer(Subsystem):
     CONFIGS = {}
     CONTROLS = {}
 
-    def get_stats(self):
-        if os.path.exists(self.path_state):
-            return {'state': "%s"%(readfile(self.path_state).strip(),),}
-        else:
-            # Root group does not have the file
-            return {'state': ''}
-
 class SubsystemNetCls(Subsystem):
     NAME = 'net_cls'
     STATS = {}
@@ -447,6 +394,9 @@ class SubsystemName(Subsystem):
     CONFIGS = {}
     CONTROLS = {}
 
+    def __init__(self, name):
+        self.name = name
+
 subsystem_name2class = {
     'cpu':SubsystemCpu,
     'cpuacct':SubsystemCpuacct,
@@ -459,8 +409,8 @@ subsystem_name2class = {
 }
 def get_subsystem(name):
     if 'name=' in name:
-        return SubsystemName
-    return subsystem_name2class[name]
+        return SubsystemName(name)
+    return subsystem_name2class[name]()
 
 class CGroup(object):
     STATS = {
@@ -475,39 +425,97 @@ class CGroup(object):
     CONTROLS = {
         'cgroup.event_control': None,
     }
-    def calc_depth(self, path):
+    PARSERS = {
+        int:  lambda path: int(readfile(path)),
+        long: lambda path: long(readfile(path)),
+        str:  lambda path: readfile(path).strip(),
+        SimpleList: SimpleList.parse,
+        SimpleStat: SimpleStat.parse,
+        BlkioStat: BlkioStat.parse,
+        DevicesStat: DevicesStat.parse,
+        NumaStat: NumaStat.parse,
+        PercpuStat: PercpuStat.parse,
+    }
+
+    def _calc_depth(self, path):
         def rec(path):
             rest = os.path.split(path)[0]
             if rest == '/': return 1
             else: return rec(rest) + 1
         return rec(path)
 
-    def __init__(self, mount_point, path, subsystem):
-        self.mount_point = mount_point
-        self.path = path
+    def __init__(self, subsystem, fullpath, filters=[]):
         self.subsystem = subsystem
+        self.fullpath = fullpath
+        self.filters = filters
 
-        self.fullpath = os.path.normpath(self.mount_point+path)
+        status = SubsystemStatus()
+        mount_point = status.get_path(subsystem.name)
+        path = fullpath.replace(mount_point, '')
+        self.path = '/' if path == '' else path
+
         if self.path == '/':
             self.depth = 0
-        else:
-            self.depth = self.calc_depth(self.path)
-        if self.path == '/':
             self.fullname = self.name = '<root>'
         else:
+            self.depth = self._calc_depth(self.path)
             self.name = os.path.basename(self.path)
             self.fullname = self.path[1:]
 
         self.paths = {}
         for file in self.STATS.keys() + self.CONFIGS.keys() + self.CONTROLS.keys():
             self.paths[file] = os.path.join(self.fullpath, file)
+        for file in subsystem.STATS.keys() + subsystem.CONFIGS.keys() + \
+                    subsystem.CONTROLS.keys():
+            self.paths[file] = os.path.join(self.fullpath, subsystem.name+'.'+file)
+
+        self.configs = {}
+        self.stats = {}
+
+        if self.filters:
+            _configs = {}
+            _configs.update(self.CONFIGS)
+            _configs.update(subsystem.CONFIGS)
+            _stats = {}
+            _stats.update(self.STATS)
+            _stats.update(subsystem.STATS)
+            for f in self.filters:
+                if f in _configs:
+                    self.configs[f] = _configs[f]
+                elif f in _stats:
+                    self.stats[f] = _stats[f]
+        else:
+            self.configs.update(self.CONFIGS)
+            self.configs.update(subsystem.CONFIGS)
+            self.stats.update(self.STATS)
+            self.stats.update(subsystem.STATS)
 
         self._update_n_procs()
 
         self.childs = []
 
+    def get_configs(self):
+        configs = {}
+        for name, default in self.configs.iteritems():
+            cls = default.__class__
+            path = self.paths[name]
+            if os.path.exists(path):
+                configs[name] = self.PARSERS[cls](path)
+        return configs
+
+    def get_default_configs(self):
+        return self.configs.copy()
+
+    def get_stats(self):
+        stats = {}
+        for name, cls in self.stats.iteritems():
+            path = self.paths[name]
+            if os.path.exists(path):
+                stats[name] = self.PARSERS[cls](path)
+        return stats
+
     def __str__(self):
-        return "<CGroup: %s (%s)>" % (self.fullname, self.subsystem.NAME)
+        return "<CGroup: %s (%s)>" % (self.fullname, self.subsystem.name)
 
     def update_pids(self):
         pids = readfile(self.paths['cgroup.procs']).split('\n')[:-1]
@@ -520,23 +528,6 @@ class CGroup(object):
 
     def update(self):
         self._update_n_procs()
-
-    def get_stats(self):
-        return self.subsystem.get_stats()
-
-    def get_configs(self):
-        configs = self.subsystem.get_configs()
-        if os.path.exists(self.paths['release_agent']):
-            configs['release_agent'] = readfile(self.paths['release_agent']).strip()
-        configs['notify_on_release'] = int(readfile(self.paths['notify_on_release']))
-        return configs
-
-    def get_default_configs(self):
-        configs = self.subsystem.get_default_configs()
-        if os.path.exists(self.paths['release_agent']):
-            configs['release_agent'] = ''
-        configs['notify_on_release'] = 0
-        return configs
 
 class EventListener(object):
     def __init__(self, cgroup, target_path):
@@ -561,22 +552,19 @@ class EventListener(object):
         return struct.unpack('Q', ret)
 
 def scan_cgroups_recursively0(subsystem, fullpath, mount_point, filters):
-    relpath = fullpath.replace(mount_point, '')
-    relpath = '/' if relpath == '' else relpath
-    cgroup = CGroup(mount_point, relpath,
-                    get_subsystem(subsystem)(fullpath, filters))
+    cgroup = CGroup(get_subsystem(subsystem), fullpath, filters)
 
     _childs = []
     for _file in os.listdir(fullpath):
         child_fullpath = os.path.join(fullpath,_file)
         if os.path.isdir(child_fullpath):
             child = scan_cgroups_recursively0(subsystem, child_fullpath,
-                                                mount_point, filters)
+                                              mount_point, filters)
             _childs.append(child)
     cgroup.childs.extend(_childs)
     return cgroup
 
-def scan_cgroups_recursively(subsystem, mount_point, filters=None):
+def scan_cgroups_recursively(subsystem, mount_point, filters=[]):
     return scan_cgroups_recursively0(subsystem, mount_point, mount_point, filters)
 
 class NoSuchSubsystemError(StandardError): pass
@@ -600,14 +588,13 @@ def walk_cgroups(cgroup, action, opaque):
     for child in cgroup.childs:
         walk_cgroups(child, action, opaque)
 
-def get_cgroup(_path):
+def get_cgroup(fullpath):
     status = SubsystemStatus()
     for name, mount_point in status.paths.iteritems():
-        if name in _path:
+        if name in fullpath:
             break
     else:
-        raise StandardError('Invalid path: ' % _path)
-    path = _path.replace(mount_point, '')
-    subsys = get_subsystem(name)(mount_point)
+        raise StandardError('Invalid path: ' % fullpath)
+    subsys = get_subsystem(name)
 
-    return CGroup(mount_point, path, subsys)
+    return CGroup(subsys, fullpath)
