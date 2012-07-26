@@ -73,19 +73,19 @@ class Command(command.Command):
     parser.add_option('-e', '--hide-empty', action='store_true',
                       dest='hide_empty', default=False,
                       help='Hide empty groups [False]')
-    parser.add_option('-k', '--hide-kthread', action='store_true',
-                      dest='hide_kthread', default=False,
-                      help='Hide kernel threads [False]')
+    parser.add_option('-k', '--show-kthread', action='store_true',
+                      dest='show_kthread', default=False,
+                      help='Show kernel threads [False]')
     parser.add_option('--color', action='store_true',
                       dest='color', default=False,
                       help='Coloring [False]')
-    parser.add_option('-p', '--show-pid', action='store_true',
+    parser.add_option('-i', '--show-pid', action='store_true',
                       dest='show_pid', default=False,
                       help='Show PID [False]')
     parser.add_option('-n', '--show-nprocs', action='store_true',
                       dest='show_nprocs', default=False,
                       help='Show # of processes in each cgroup [False]')
-    parser.add_option('-t', '--show-procs', action='store_true',
+    parser.add_option('-p', '--show-procs', action='store_true',
                       dest='show_procs', default=False,
                       help='Show processes in each cgroup [False]')
     parser.add_option('-a', '--show-autogroup', action='store_true',
@@ -183,7 +183,7 @@ class Command(command.Command):
         def build_tree(proc_list):
             _containers = []
             for proc in proc_list:
-                if self.options.hide_kthread and proc.is_kthread():
+                if not self.options.show_kthread and proc.is_kthread():
                     continue
 
                 cont = TreeContainer(proc)
@@ -194,7 +194,7 @@ class Command(command.Command):
             return _containers
 
         for top_proc in tops:
-            if self.options.hide_kthread and top_proc.is_kthread():
+            if not self.options.show_kthread and top_proc.is_kthread():
                 continue
 
             cont = TreeContainer(top_proc)
@@ -224,7 +224,7 @@ class Command(command.Command):
             cont.childs = self._build_process_container_tree(group.pids)
             containers.append(cont)
 
-        if None in groups and not self.options.hide_kthread:
+        if None in groups and self.options.show_kthread:
             containers += self._build_process_container_tree(groups[None])
 
         return containers

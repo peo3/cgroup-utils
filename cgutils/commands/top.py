@@ -98,7 +98,7 @@ class CGTopStats:
                 pids += _cgroup.pids
 
             n_procs = len(set(pids))
-            if self.options.hide_empty and n_procs == 0:
+            if not self.options.show_empty and n_procs == 0:
                 continue
             
             active = False
@@ -132,7 +132,7 @@ class CGTopStats:
                 if [stats['mem.total'],stats['mem.rss'],\
                     stats['mem.swap']].count(0) != 3:
                     active = True
-            if self.options.hide_inactive and not active:
+            if not self.options.show_inactive and not active:
                 pass
             else:
                 cgroup_stats.append(stats)
@@ -231,8 +231,8 @@ class CGTopUI:
         self.cgstats = cgstats
         self.options = options
 
-        self.sorting_key = 'name'
-        self.sorting_reverse = False
+        self.sorting_key = 'cpu.user'
+        self.sorting_reverse = True
 
         self._init_display_params()
         self._init_subsys_title()
@@ -261,14 +261,14 @@ class CGTopUI:
         self.sorting_key = self.SORTING_KEYS[new]
 
     def handle_key(self, key):
-        def toggle_hide_inactive():
-            self.options.hide_inactive = not self.options.hide_inactive
+        def toggle_show_inactive():
+            self.options.show_inactive = not self.options.show_inactive
 
-        def toggle_hide_zero():
-            self.options.hide_zero = not self.options.hide_zero
+        def toggle_show_zero():
+            self.options.show_zero = not self.options.show_zero
 
-        def toggle_hide_empty():
-            self.options.hide_empty = not self.options.hide_empty
+        def toggle_show_empty():
+            self.options.show_empty = not self.options.show_empty
 
         key_bindings = {
             ord('q'):
@@ -280,17 +280,17 @@ class CGTopUI:
             ord('R'):
                 lambda: self.reverse_sorting(),
             ord('i'):
-                toggle_hide_inactive,
+                toggle_show_inactive,
             ord('I'):
-                toggle_hide_inactive,
+                toggle_show_inactive,
             ord('z'):
-                toggle_hide_zero,
+                toggle_show_zero,
             ord('Z'):
-                toggle_hide_zero,
+                toggle_show_zero,
             ord('e'):
-                toggle_hide_empty,
+                toggle_show_empty,
             ord('E'):
-                toggle_hide_empty,
+                toggle_show_empty,
             curses.KEY_LEFT:
                 lambda: self.adjust_sorting_key(-1),
             curses.KEY_RIGHT:
@@ -423,7 +423,7 @@ class CGTopUI:
             }
 
             def to_s(name):
-                if self.options.hide_zero and stats[name] == 0:
+                if not self.options.show_zero and stats[name] == 0:
                     return ' '.rjust(w[name])
                 else:
                     return item2formatters[name](stats[name]).rjust(w[name])
@@ -490,14 +490,14 @@ class Command(command.Command):
     NAME = 'top'
 
     parser = command.Command.parser
-    parser.add_option('-i', '--hide-inactive', action='store_true',
-                      dest='hide_inactive', default=False,
-                      help='Hide inactive groups [False]')
-    parser.add_option('-z', '--hide-zero', action='store_true',
-                      dest='hide_zero', default=False,
-                      help='Hide zero numbers [False]')
-    parser.add_option('-e', '--hide-empty', action='store_true',
-                      dest='hide_empty', default=False,
+    parser.add_option('-i', '--show-inactive', action='store_true',
+                      dest='show_inactive', default=False,
+                      help='Show inactive groups [False]')
+    parser.add_option('-z', '--show-zero', action='store_true',
+                      dest='show_zero', default=False,
+                      help='Show zero numbers [False]')
+    parser.add_option('-e', '--show-empty', action='store_true',
+                      dest='show_empty', default=False,
                       help='Hide empty groups [False]')
     parser.add_option('-r', '--hide-root', action='store_true',
                       dest='hide_root', default=False,
@@ -508,8 +508,8 @@ class Command(command.Command):
                       metavar='NUM',
                       help='Number of iterations before ending [infinite]')
     parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
-                      help='Delay between iterations [1 second]',
-                      metavar='SEC', default=1)
+                      help='Delay between iterations [3 second]',
+                      metavar='SEC', default=3)
 
 
     def _run_window(self, win):

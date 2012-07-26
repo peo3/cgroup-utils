@@ -32,10 +32,10 @@ class Command(command.Command):
     parser.add_option('-o', action='store', type='string',
                       dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
                       help='Specify a subsystem [cpu]')
-    parser.add_option('--show-default', action='store_true',
+    parser.add_option('-d', '--show-default', action='store_true',
                       dest='show_default', default=False,
                       help='Show every parameters including default values [False]')
-    parser.add_option('--show-rate', action='store_true',
+    parser.add_option('-r', '--show-rate', action='store_true',
                       dest='show_rate', default=False,
                       help='Show rate value to default/current values [False]')
     parser.add_option('-e', '--hide-empty', action='store_true',
