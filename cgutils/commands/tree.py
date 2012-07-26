@@ -110,7 +110,7 @@ class Command(command.Command):
                 s += ' '*self._INDENT_SIZE
         return s
 
-    def print_process(self, proc, indents):
+    def _print_process(self, proc, indents):
         s = self._build_indent(indents)
         if proc.is_kthread():
             s += decorate(proc.name, 'kthread')
@@ -261,10 +261,10 @@ class Command(command.Command):
 
             if self.options.show_autogroup and container == root_container:
                 # Autogroup is effective only when processes don't belong to any cgroup
-                groups = build_autogroup_container_tree(_cgroup.pids, self.options)
+                groups = self._build_autogroup_container_tree(_cgroup.pids)
                 container.childs.extend(groups)
             else:
-                procs = build_process_container_tree(_cgroup.pids, self.options)
+                procs = self._build_process_container_tree(_cgroup.pids)
                 container.childs.extend(procs)
 
         root_container = TreeContainer(root_cgroup)
