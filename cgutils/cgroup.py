@@ -490,9 +490,9 @@ class CGroup(object):
             self.stats.update(self.STATS)
             self.stats.update(subsystem.STATS)
 
-        self._update_n_procs()
-
         self.childs = []
+
+        self.update()
 
     def get_configs(self):
         configs = {}
@@ -517,17 +517,10 @@ class CGroup(object):
     def __str__(self):
         return "<CGroup: %s (%s)>" % (self.fullname, self.subsystem.name)
 
-    def update_pids(self):
-        pids = readfile(self.paths['cgroup.procs']).split('\n')[:-1]
-        self.pids = [int(pid) for pid in pids]
-        self.n_procs = len(pids)
-
-    def _update_n_procs(self):
-        self.n_procs = readfile(self.paths['cgroup.procs']).count("\n") - 1
-        if self.n_procs == -1: self.n_procs = 0
-
     def update(self):
-        self._update_n_procs()
+        pids = readfile(self.paths['cgroup.procs']).rstrip('\n').split('\n')
+        self.pids = [int(pid) for pid in pids if pid != '']
+        self.n_procs = len(pids)
 
 class EventListener(object):
     def __init__(self, cgroup, target_path):

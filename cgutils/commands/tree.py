@@ -131,7 +131,7 @@ class Command(command.Command):
         print(s)
 
     def _print_cgroup(self, cg, indents):
-        cg.update_pids()
+        cg.update()
         if self.options.debug:
             print(cg.pids)
         s = self._build_indent(indents)
@@ -242,7 +242,7 @@ class Command(command.Command):
         def build_container_tree(container):
             _cgroup = container.this
             for child in _cgroup.childs:
-                child.update_pids()
+                child.update()
                 if self.options.hide_empty and \
                    len(child.childs) == 0 and \
                    len(child.pids) == 0:
@@ -255,7 +255,7 @@ class Command(command.Command):
             if not self.options.show_procs:
                 return
 
-            _cgroup.update_pids()
+            _cgroup.update()
             if self.options.debug:
                 print(_cgroup.pids)
 

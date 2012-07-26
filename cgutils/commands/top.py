@@ -94,7 +94,7 @@ class CGTopStats:
                     mem = _cgroup
                 elif subsys_name == 'blkio':
                     bio = _cgroup
-                _cgroup.update_pids()
+                _cgroup.update()
                 pids += _cgroup.pids
 
             n_procs = len(set(pids))

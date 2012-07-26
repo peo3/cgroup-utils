@@ -52,7 +52,7 @@ class Command(command.Command):
 
         def print_matched(cg, dummy):
             mypid = os.getpid()
-            cg.update_pids()
+            cg.update()
             procs = []
             for pid in cg.pids:
                 if pid == mypid:
