@@ -17,7 +17,6 @@
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
 
 import sys
-import json
 
 from cgutils import cgroup
 from cgutils import command
@@ -117,6 +116,7 @@ class Command(command.Command):
         cgroups = {}
         cgroup.walk_cgroups(root_cgroup, collect_configs, cgroups)
         if self.options.json:
+            import json
             json.dump(cgroups, sys.stdout, indent=4)
         else:
             for name, (configs, defaults) in cgroups.iteritems():
