@@ -587,7 +587,7 @@ def get_cgroup(fullpath):
         if name in fullpath:
             break
     else:
-        raise StandardError('Invalid path: ' % fullpath)
+        raise StandardError('Invalid path: ' + fullpath)
     subsys = get_subsystem(name)
 
     return CGroup(subsys, fullpath)
