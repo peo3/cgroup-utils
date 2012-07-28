@@ -46,16 +46,14 @@ class CGTopStats:
                 store[cg.name] = []
             store[cg.name].append(cg)
     
-        subsys_status = cgroup.SubsystemStatus()
-
         # Collect cgroups by group name (path)
         cgroups = {}
         for name in self.SUBSYSTEMS:
-            if name not in subsys_status.get_enabled():
-                continue
-            mount_point = subsys_status.get_path(name)
-            root_cgroup = cgroup.scan_cgroups_recursively(name, mount_point, self.FILTERS[name])
-            cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
+            try:
+                root_cgroup = cgroup.scan_cgroups(name, self.FILTERS[name])
+                cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
+            except EnvironmentError, e:
+                print >>sys.stderr, e
         self.cgroups = cgroups
         if options.hide_root:
             del self.cgroups['<root>']

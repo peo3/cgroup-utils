@@ -396,7 +396,7 @@ class SubsystemName(Subsystem):
     def __init__(self, name):
         self.name = name
 
-subsystem_name2class = {
+_subsystem_name2class = {
     'cpu':SubsystemCpu,
     'cpuacct':SubsystemCpuacct,
     'cpuset':SubsystemCpuset,
@@ -406,10 +406,10 @@ subsystem_name2class = {
     'net_cls':SubsystemNetCls,
     'devices':SubsystemDevices,
 }
-def get_subsystem(name):
+def _get_subsystem(name):
     if 'name=' in name:
         return SubsystemName(name)
-    return subsystem_name2class[name]()
+    return _subsystem_name2class[name]()
 
 class CGroup(object):
     STATS = {
@@ -494,6 +494,9 @@ class CGroup(object):
 
         self.update()
 
+    def __str__(self):
+        return "<CGroup: %s (%s)>" % (self.fullname, self.subsystem.name)
+
     def get_configs(self):
         configs = {}
         for name, default in self.configs.iteritems():
@@ -513,9 +516,6 @@ class CGroup(object):
             if os.path.exists(path):
                 stats[name] = self.PARSERS[cls](path)
         return stats
-
-    def __str__(self):
-        return "<CGroup: %s (%s)>" % (self.fullname, self.subsystem.name)
 
     def update(self):
         pids = readfile(self.paths['cgroup.procs']).rstrip('\n').split('\n')
@@ -544,37 +544,38 @@ class EventListener(object):
         ret = os.read(self.event_fd, 64/8)
         return struct.unpack('Q', ret)
 
-def scan_cgroups_recursively0(subsystem, fullpath, mount_point, filters):
-    cgroup = CGroup(get_subsystem(subsystem), fullpath, filters)
+def _scan_cgroups_recursive(subsystem, fullpath, mount_point, filters):
+    cgroup = CGroup(subsystem, fullpath, filters)
 
     _childs = []
     for _file in os.listdir(fullpath):
         child_fullpath = os.path.join(fullpath,_file)
         if os.path.isdir(child_fullpath):
-            child = scan_cgroups_recursively0(subsystem, child_fullpath,
-                                              mount_point, filters)
+            child = _scan_cgroups_recursive(subsystem, child_fullpath,
+                                           mount_point, filters)
             _childs.append(child)
     cgroup.childs.extend(_childs)
     return cgroup
 
-def scan_cgroups_recursively(subsystem, mount_point, filters=[]):
-    return scan_cgroups_recursively0(subsystem, mount_point, mount_point, filters)
-
+"""
+  Public APIs
+"""
 class NoSuchSubsystemError(StandardError): pass
 
-def scan_cgroups(subsys):
+def scan_cgroups(subsys_name, filters=[]):
     status = SubsystemStatus()
-    if subsys not in status.get_all():
-        raise NoSuchSubsystemError('No such subsystem found: %s'%(subsys,))
+    if subsys_name not in status.get_all():
+        raise NoSuchSubsystemError("No such subsystem found: " + subsys_name)
 
-    if subsys not in status.get_available():
-        raise EnvironmentError('Disabled in the kernel: %s'%(subsys,))
+    if subsys_name not in status.get_available():
+        raise EnvironmentError("Disabled in the kernel: " + subsys_name)
 
-    if subsys not in status.get_enabled():
-        raise EnvironmentError('Not enabled in the system: %s'%(subsys,))
+    if subsys_name not in status.get_enabled():
+        raise EnvironmentError("Not enabled in the system: " + subsys_name)
 
-    mount_point = status.get_path(subsys)
-    return scan_cgroups_recursively(subsys, mount_point)
+    subsystem = _get_subsystem(subsys_name)
+    mount_point = status.get_path(subsys_name)
+    return _scan_cgroups_recursive(subsystem, mount_point, mount_point, filters)
 
 def walk_cgroups(cgroup, action, opaque):
     action(cgroup, opaque)
@@ -588,6 +589,6 @@ def get_cgroup(fullpath):
             break
     else:
         raise StandardError('Invalid path: ' + fullpath)
-    subsys = get_subsystem(name)
+    subsys = _get_subsystem(name)
 
     return CGroup(subsys, fullpath)
