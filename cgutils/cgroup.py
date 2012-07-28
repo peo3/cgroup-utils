@@ -418,7 +418,8 @@ class CGroup(object):
     }
     CONFIGS = {
         'release_agent': '',
-        'notify_on_release': 1,
+        # XXX: the default value is actually inherited from a parent
+        'notify_on_release': 0,
         'cgroup.clone_children': 0,
     }
     CONTROLS = {
