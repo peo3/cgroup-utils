@@ -32,9 +32,34 @@ class Command(command.Command):
     parser.add_option('-e', '--hide-empty', action='store_true',
                       dest='hide_empty', default=False,
                       help='Hide empty groups [False]')
+    parser.add_option('-z', '--show-zero', action='store_true',
+                      dest='show_zero', default=False,
+                      help='Show zero values [False]')
     parser.add_option('--json', action='store_true',
                       dest='json', default=False,
                       help='Dump as JSON [False]')
+
+    _INDENT = ' '*4
+    def _print_stats(self, cgname, stats):
+        def print_recursive(name, value, indent):
+            if isinstance(value, long):
+                if self.options.show_zero or value != 0:
+                    return "%s%s=%d\n" % (self._INDENT*indent, name, value)
+            elif isinstance(value, list):
+                if self.options.show_zero or value:
+                    values = [str(v) for v in value]
+                    return "%s%s=%s\n" % (self._INDENT*indent, name, ', '.join(values))
+            elif isinstance(value, dict):
+                ret = ''
+                for n, v in value.iteritems():
+                    ret += print_recursive(n, v, indent+1)
+                if ret:
+                    return "%s%s:\n" % (self._INDENT*indent, name) + ret
+            return ''
+
+        ret = print_recursive(cgname, stats, 0)
+        if ret:
+            print ret,
 
     def run(self, args):
         root_cgroup = cgroup.scan_cgroups(self.options.target_subsystem)
@@ -55,7 +80,5 @@ class Command(command.Command):
             json.dump(cgroups, sys.stdout, indent=4)
         else:
             for cgname, stats in cgroups.iteritems():
-                print(cgname)
-                for name, val in stats.iteritems():
-                    print("\t%s=%s"%(name, str(val)))
+                self._print_stats(cgname, stats)
 
