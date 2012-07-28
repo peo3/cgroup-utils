@@ -53,7 +53,7 @@ class CGTopStats:
                 root_cgroup = cgroup.scan_cgroups(name, self.FILTERS[name])
                 cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
             except EnvironmentError, e:
-                print >>sys.stderr, e
+                print >> sys.stderr, e
         self.cgroups = cgroups
         if options.hide_root:
             del self.cgroups['<root>']
@@ -81,7 +81,7 @@ class CGTopStats:
 
     def get_cgroup_stats(self):
         cgroup_stats = []
-        for name, cgroup_list in self.cgroups.iteritems():
+        for cgroup_list in self.cgroups.values():
             cpu = mem = bio = None
             pids = []
             for _cgroup in cgroup_list:
@@ -109,7 +109,7 @@ class CGTopStats:
                 if self.delta['cpu'] and cpu in self.delta:
                     stats['cpu.user']   = percent(self.delta[cpu]['user'])
                     stats['cpu.system'] = percent(self.delta[cpu]['system'])
-                if (stats['cpu.user']+stats['cpu.system']) > 0.0:
+                if (stats['cpu.user'] + stats['cpu.system']) > 0.0:
                     active = True
 
             if bio:
@@ -118,7 +118,7 @@ class CGTopStats:
                 if self.delta['time'] and bio in self.delta:
                     stats['bio.read']  = byps(self.delta[bio]['read'])
                     stats['bio.write'] = byps(self.delta[bio]['write'])
-                if (stats['bio.read']+stats['bio.write']) > 0.0:
+                if (stats['bio.read'] + stats['bio.write']) > 0.0:
                     active = True
 
             if mem:
@@ -127,7 +127,7 @@ class CGTopStats:
                     stats['mem.rss']   = self.delta[mem]['rss']
                     if 'swap' in self.delta[mem]:
                         stats['mem.swap']  = self.delta[mem]['swap']
-                if [stats['mem.total'],stats['mem.rss'],\
+                if [stats['mem.total'], stats['mem.rss'], \
                     stats['mem.swap']].count(0) != 3:
                     active = True
             if not self.options.show_inactive and not active:
@@ -138,7 +138,7 @@ class CGTopStats:
 
     def __conv_blkio_stats(stats):
         n_reads = n_writes = 0L
-        for k,v in stats['io_service_bytes'].iteritems():
+        for k, v in stats['io_service_bytes'].iteritems():
             if k == 'Total': continue
             n_reads += v['Read']
             n_writes += v['Write']
@@ -318,7 +318,7 @@ class CGTopUI:
             self.cgstats.update()
             aft = time.time()
 
-            debug_msg = "%.1f msec to collect statistics"%((aft-bef)*1000,)
+            debug_msg = "%.1f msec to collect statistics" % ((aft-bef)*1000,)
             self.refresh_display(debug_msg)
 
             if self.options.iterations is not None:
@@ -365,7 +365,7 @@ class CGTopUI:
     def _init_subsys_title(self):
         title_list = []
         for name in self.cgstats.SUBSYSTEMS:
-            width = self.ITEM_WIDTHS[name]*self.N_ITEMS[name]+self.N_ITEMS[name]-1
+            width = self.ITEM_WIDTHS[name]*self.N_ITEMS[name] + self.N_ITEMS[name] - 1
             title = '[' + name.upper().center(width-2) + ']'
             title_list.append(title)
         self.SUBSYS_TITLE = self.SUBSYS_SEP.join(title_list)
@@ -438,7 +438,7 @@ class CGTopUI:
         cgroup_stats = self.cgstats.get_cgroup_stats()
         cgroup_stats.sort(key=lambda st: st[self.sorting_key],
                           reverse=self.sorting_reverse)
-        lines = map(format, cgroup_stats)
+        lines = [format(s) for s in  cgroup_stats]
 
         if self.options.batch:
             print debug_msg

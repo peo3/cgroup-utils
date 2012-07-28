@@ -79,7 +79,9 @@ class Command(command.Command):
         if self.options.debug:
             print "Threshold: %d (%d MB)" % (threshold, threshold/1024/1024)
 
-        ret = listener.wait()
+        #ret = listener.wait()
+        listener.wait()
+
         if not os.path.exists(cg.fullpath):
             print('The cgroup seems to have beeen removed.')
             sys.exit(1)

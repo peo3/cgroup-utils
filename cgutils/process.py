@@ -69,7 +69,7 @@ class Process(object):
         if len(args) >= 2:
             scripts = ['python', 'ruby', 'perl']
             # Want to catch /usr/bin/python1.7 ...
-            if len(filter(lambda x: x in name, scripts)) > 0:
+            if len([s for s in scripts if s in name]) > 0:
                 name = os.path.basename(args[1])
         return name
 

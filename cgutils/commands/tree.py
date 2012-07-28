@@ -18,13 +18,10 @@
 
 from __future__ import with_statement
 import sys
-import os, os.path
 
 from cgutils import cgroup
 from cgutils import command
 from cgutils import process
-from cgutils import host
-from cgutils import formatter
 
 def readfile(filepath):
     with open(filepath) as f:
@@ -92,7 +89,7 @@ class Command(command.Command):
                       dest='show_autogroup', default=False,
                       help='Show groups by autogroup feature [False]')
 
-    _INDENT_SIZE=4
+    _INDENT_SIZE = 4
 
     def _build_indent(self, indents):
         if len(indents) == 0:
@@ -125,7 +122,7 @@ class Command(command.Command):
                     name = decorate(name, 'running')
             s += name
         if self.options.show_pid:
-            s += "(%d)"%(proc.pid,)
+            s += "(%d)" % proc.pid
         if self.options.debug:
             s += str(indents)
         print(s)
@@ -140,7 +137,7 @@ class Command(command.Command):
         else:
             s += cg.name
         if self.options.show_nprocs:
-            s += '(%d)'%(cg.n_procs,)
+            s += '(%d)' % cg.n_procs
         if self.options.debug:
             s += str(indents)
         print(s)
@@ -160,11 +157,11 @@ class Command(command.Command):
         print(s)
 
     def _build_process_container_tree(self, pids):
-        containers = []
         """
         tops = [1,2,3]
         childs = {1: [4,5], 2: [6,7], 3: [], 4: []}
         """
+        containers = []
         procs = []
         ppids = []
         childs = {}

@@ -30,6 +30,8 @@ def readfile(filepath):
 
 class SubsystemStatus(dict):
     def __init__(self):
+        dict.__init__(self)
+        self.paths = {}
         self.update()
 
     def _parse_proc_cgroups(self):
@@ -109,7 +111,6 @@ class SubsystemStatus(dict):
 
     def update(self):
         self.clear()
-        self.paths = {}
         self._update()
 
     def get_all(self):
@@ -248,6 +249,7 @@ class Subsystem(object):
     CONFIGS = {}
     STATS = {}
     CONTROLS = {}
+    NAME = None
 
     def __init__(self):
         self.name = self.NAME
@@ -394,6 +396,7 @@ class SubsystemName(Subsystem):
     CONTROLS = {}
 
     def __init__(self, name):
+        Subsystem.__init__(self)
         self.name = name
 
 _subsystem_name2class = {
@@ -440,11 +443,13 @@ class CGroup(object):
     def _calc_depth(self, path):
         def rec(path):
             rest = os.path.split(path)[0]
-            if rest == '/': return 1
-            else: return rec(rest) + 1
+            if rest == '/':
+                return 1
+            else:
+                return rec(rest) + 1
         return rec(path)
 
-    def __init__(self, subsystem, fullpath, filters=[]):
+    def __init__(self, subsystem, fullpath, filters=list()):
         self.subsystem = subsystem
         self.fullpath = fullpath
         self.filters = filters
@@ -491,6 +496,8 @@ class CGroup(object):
             self.stats.update(subsystem.STATS)
 
         self.childs = []
+        self.pids = []
+        self.n_procs = 0
 
         self.update()
 
@@ -549,7 +556,7 @@ def _scan_cgroups_recursive(subsystem, fullpath, mount_point, filters):
 
     _childs = []
     for _file in os.listdir(fullpath):
-        child_fullpath = os.path.join(fullpath,_file)
+        child_fullpath = os.path.join(fullpath, _file)
         if os.path.isdir(child_fullpath):
             child = _scan_cgroups_recursive(subsystem, child_fullpath,
                                            mount_point, filters)
@@ -562,7 +569,7 @@ def _scan_cgroups_recursive(subsystem, fullpath, mount_point, filters):
 """
 class NoSuchSubsystemError(StandardError): pass
 
-def scan_cgroups(subsys_name, filters=[]):
+def scan_cgroups(subsys_name, filters=list()):
     status = SubsystemStatus()
     if subsys_name not in status.get_all():
         raise NoSuchSubsystemError("No such subsystem found: " + subsys_name)
@@ -584,7 +591,8 @@ def walk_cgroups(cgroup, action, opaque):
 
 def get_cgroup(fullpath):
     status = SubsystemStatus()
-    for name, mount_point in status.paths.iteritems():
+    name = None
+    for name, in status.paths.iteritems():
         if name in fullpath:
             break
     else:

@@ -40,7 +40,7 @@ class CPUInfo():
     def get_total_usage(self):
         line = readfile('/proc/stat').split('\n')[0]
         line = line[5:] # get rid of 'cpu  '
-        usages = map(lambda x: int(x), line.split(' '))
+        usages = [int(x) for x in line.split(' ')]
         return sum(usages)/multiprocessing.cpu_count()
 
 class MemInfo(dict):
