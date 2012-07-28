@@ -18,11 +18,12 @@ classifiers = [
     'Topic :: Utilities',
     ]
 
+long_description = open('README.rst').read()
+
 setup(name='cgroup-utils',
       version=VERSION,
       description='Utility tools for control groups of Linux',
-      long_description =
-'''cgroup-utils includes some useful libraries and tools to view status, statistics and configurations of control groups.''',
+      long_description=long_description,
       scripts=['bin/cgutil',],
       packages=['cgutils', 'cgutils.commands'],
       ext_package='cgutils',
