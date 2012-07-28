@@ -235,7 +235,6 @@ class PercpuStat(dict):
         stats = line.split(' ')
         # A line may end with a redundant space
         stats = [ stat for stat in stats if stat != '' ]
-        print stats
         i = 0
         for stat in stats:
             ret[i] = long(stat)
