@@ -3,19 +3,33 @@
 from distutils.core import setup, Extension
 from cgutils.version import VERSION
 
-mod_linux = Extension('linux', sources = ['cgutils/linux.c'])
+mod_linux = Extension('linux', sources=['cgutils/linux.c'])
 
-setup(name = 'cgroup-utils',
-      version = VERSION,
-      description = 'Utility tools for control groups of Linux',
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'Environment :: Console',
+    'Intended Audience :: System Administrators',
+    'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
+    'Operating System :: POSIX :: Linux',
+    'Programming Language :: C',
+    'Programming Language :: Python',
+    'Topic :: System :: Operating System Kernels :: Linux',
+    'Topic :: System :: Systems Administration',
+    'Topic :: Utilities',
+    ]
+
+setup(name='cgroup-utils',
+      version=VERSION,
+      description='Utility tools for control groups of Linux',
       long_description =
 '''cgroup-utils includes some useful libraries and tools to view status, statistics and configurations of control groups.''',
-      scripts = ['bin/cgutil',],
-      packages = ['cgutils', 'cgutils.commands'],
-      ext_package = 'cgutils',
-      ext_modules = [mod_linux],
-      author = 'peo3',
-      author_email = 'peo314159265@gmail.com',
-      url = 'https://github.com/peo3/cgroup-utils',
-      license = 'GPL',
+      scripts=['bin/cgutil',],
+      packages=['cgutils', 'cgutils.commands'],
+      ext_package='cgutils',
+      ext_modules=[mod_linux],
+      author='peo3',
+      author_email='peo314159265@gmail.com',
+      url='https://github.com/peo3/cgroup-utils',
+      license='GPLv2',
+      classifiers=classifiers,
 )
