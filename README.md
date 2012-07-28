@@ -3,7 +3,6 @@
 cgroup-utils provides utility tools and libraries for control groups of Linux.
 For example, cgtop is a top-like tool which shows activities of running processes based on the POV of control groups.
 
-
 #Installation
 
     $ python setup.py build
@@ -23,9 +22,12 @@ For example, cgtop is a top-like tool which shows activities of running processe
 - tree
 
 ##cgutil configs
+
 This subcommand show you configurations of cgroups.
 By default, it shows only changed configurations.
+
 ###Example output
+
     $ cgutil configs -o memory
     <root>
         notify_on_release=1
@@ -38,16 +40,22 @@ By default, it shows only changed configurations.
     	notify_on_release=1
 
 ##cgutil event
+
 This subcommand makes cgroup.event_control easy to use.
 It exits when a state of a target cgroup crosses a threshold which you set,
 thus, you can know the state of the cgroup has changed.
+
 ###Example output
+
     $ cgutil event /sys/fs/cgroup/memory/system/sshd.service/memory.usage_in_bytes +1M
     $ # It exits when memory usage of processes in the cgroup has increased one more MB.
 
 ##cgutil pgrep
+
 This subcommand is alike `pgrep` command but it shows cgroups in addtion to PIDs.
+
 ###Example output
+
     $ cgutil pgrep ssh
     /: 15072
     /: 15074
@@ -59,8 +67,11 @@ This subcommand is alike `pgrep` command but it shows cgroups in addtion to PIDs
     /system/sshd.service: 630 /usr/sbin/sshd -D
 
 ##cgutil stats
+
 This subcommand shows you states of cgroups.
+
 ###Example output
+
     $ cgutil stats
     <root>
             stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
@@ -82,8 +93,11 @@ This subcommand shows you states of cgroups.
             stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
 
 ##cgutil top
+
 This subcommand is alike `top` command but it shows activities in a unit of cgroups.
+
 ###Example output
+
     $ cgutil top -i -n 2 -b
     18.1 msec to collect statistics
     [  CPUACCT  ]  [     BLKIO     ]  [        MEMORY       ]
@@ -97,7 +111,9 @@ This subcommand is alike `top` command but it shows activities in a unit of cgro
       0.0%   0.0%    0.0 /s   0.0 /s   108.0k   32.0k    0.0    97 usr_1000/default
 
 ##cgutil tree
+
 This subcommand shows you tree structure of cgroups.
+
 ###Example outputs
     $ cgutil tree -o blkio
     <root>
