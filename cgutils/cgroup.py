@@ -272,7 +272,6 @@ class SubsystemCpu(Subsystem):
         'cfs_period_us': 100000,
         'cfs_quota_us': -1,
     }
-    CONTROLS = {}
 
 class SubsystemCpuacct(Subsystem):
     NAME = 'cpuacct'
@@ -281,8 +280,6 @@ class SubsystemCpuacct(Subsystem):
         'stat': SimpleStat,
         'usage_percpu': PercpuStat,
     }
-    CONFIGS = {}
-    CONTROLS = {}
 
 class SubsystemCpuset(Subsystem):
     NAME = 'cpuset'
@@ -304,7 +301,6 @@ class SubsystemCpuset(Subsystem):
         'sched_load_balance': 1,
         'sched_relax_domain_level': -1,
     }
-    CONTROLS = {}
 
 class SubsystemMemory(Subsystem):
     NAME = 'memory'
@@ -367,20 +363,15 @@ class SubsystemFreezer(Subsystem):
     STATS = {
         'state': str,
     }
-    CONFIGS = {}
-    CONTROLS = {}
 
 class SubsystemNetCls(Subsystem):
     NAME = 'net_cls'
-    STATS = {}
     CONFIGS = {
         'classid': 0,
     }
-    CONTROLS = {}
 
 class SubsystemDevices(Subsystem):
     NAME = 'devices'
-    STATS = {}
     CONFIGS = {
         'list': DevicesStat(['a *:* rwm']),
     }
@@ -391,9 +382,6 @@ class SubsystemDevices(Subsystem):
 
 class SubsystemName(Subsystem):
     NAME = 'name'
-    STATS = {}
-    CONFIGS = {}
-    CONTROLS = {}
 
     def __init__(self, name):
         Subsystem.__init__(self)
