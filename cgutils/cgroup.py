@@ -131,7 +131,7 @@ class SubsystemStatus(dict):
 103
 234
 """
-class SimpleList(dict):
+class SimpleList(list):
     @staticmethod
     def parse(path):
         ret = []
