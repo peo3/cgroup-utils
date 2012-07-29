@@ -73,7 +73,7 @@ class Command(command.Command):
     parser.add_option('-k', '--show-kthread', action='store_true',
                       dest='show_kthread', default=False,
                       help='Show kernel threads [False]')
-    parser.add_option('--color', action='store_true',
+    parser.add_option('-c', '--color', action='store_true',
                       dest='color', default=False,
                       help='Coloring [False]')
     parser.add_option('-i', '--show-pid', action='store_true',

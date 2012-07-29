@@ -35,7 +35,7 @@ class Command(command.Command):
     parser.add_option('-z', '--show-zero', action='store_true',
                       dest='show_zero', default=False,
                       help='Show zero values [False]')
-    parser.add_option('--json', action='store_true',
+    parser.add_option('-j', '--json', action='store_true',
                       dest='json', default=False,
                       help='Dump as JSON [False]')
 

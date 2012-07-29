@@ -40,7 +40,7 @@ class Command(command.Command):
     parser.add_option('-e', '--hide-empty', action='store_true',
                       dest='hide_empty', default=False,
                       help='Hide empty groups [False]')
-    parser.add_option('--json', action='store_true',
+    parser.add_option('-j', '--json', action='store_true',
                       dest='json', default=False,
                       help='Dump as JSON [False]')
 
