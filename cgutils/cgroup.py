@@ -133,9 +133,9 @@ class SubsystemStatus(dict):
 """
 class SimpleList(list):
     @staticmethod
-    def parse(path):
+    def parse(content):
         ret = []
-        for line in readfile(path).split('\n')[:-1]:
+        for line in content.split('\n')[:-1]:
             ret.append(long(line))
         return ret
 
@@ -145,9 +145,9 @@ system 1037760
 """
 class SimpleStat(dict):
     @staticmethod
-    def parse(path):
+    def parse(content):
         ret = {}
-        for line in readfile(path).split('\n')[:-1]:
+        for line in content.split('\n')[:-1]:
             name, val = line.split(' ')
             ret[name] = long(val)
         return ret
@@ -162,9 +162,9 @@ Total 100741120
 """
 class BlkioStat(dict):
     @staticmethod
-    def parse(path):
+    def parse(content):
         ret = {}
-        for line in readfile(path).split('\n')[:-1]:
+        for line in content.split('\n')[:-1]:
             if line.count(' ') == 2:
                 dev, type, val = line.split(' ')
                 if dev not in ret:
@@ -199,8 +199,8 @@ c 251:4 rwm
 """
 class DevicesStat(list):
     @staticmethod
-    def parse(path):
-        return readfile(path).split('\n')[:-1]
+    def parse(content):
+        return content.split('\n')[:-1]
 
 """
 total=83920 N0=83920
@@ -210,9 +210,9 @@ unevictable=0 N0=0
 """
 class NumaStat(dict):
     @staticmethod
-    def parse(path):
+    def parse(content):
         ret = {}
-        lines = readfile(path).split('\n')[:-1]
+        lines = content.split('\n')[:-1]
         for line in lines:
             item = {}
             entries = line.split(' ')
@@ -230,9 +230,9 @@ class NumaStat(dict):
 """
 class PercpuStat(dict):
     @staticmethod
-    def parse(path):
+    def parse(content):
         ret = {}
-        line = readfile(path).split('\n')[0]
+        line = content.split('\n')[0]
         stats = line.split(' ')
         # A line may end with a redundant space
         stats = [ stat for stat in stats if stat != '' ]
@@ -429,9 +429,9 @@ class CGroup(object):
         'cgroup.event_control': None,
     }
     PARSERS = {
-        int:  lambda path: int(readfile(path)),
-        long: lambda path: long(readfile(path)),
-        str:  lambda path: readfile(path).strip(),
+        int:  lambda content: int(content),
+        long: lambda content: long(content),
+        str:  lambda content: content.strip(),
         SimpleList: SimpleList.parse,
         SimpleStat: SimpleStat.parse,
         BlkioStat: BlkioStat.parse,
@@ -510,7 +510,7 @@ class CGroup(object):
             cls = default.__class__
             path = self.paths[name]
             if os.path.exists(path):
-                configs[name] = self.PARSERS[cls](path)
+                configs[name] = self.PARSERS[cls](readfile(path))
         return configs
 
     def get_default_configs(self):
@@ -521,7 +521,7 @@ class CGroup(object):
         for name, cls in self.stats.iteritems():
             path = self.paths[name]
             if os.path.exists(path):
-                stats[name] = self.PARSERS[cls](path)
+                stats[name] = self.PARSERS[cls](readfile(path))
         return stats
 
     def update(self):
