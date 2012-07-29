@@ -22,7 +22,6 @@ import re
 import struct
 
 from cgutils import host
-from cgutils import linux
 
 def readfile(filepath):
     with open(filepath) as f:
@@ -519,6 +518,7 @@ class CGroup(object):
 
 class EventListener(object):
     def __init__(self, cgroup, target_path):
+        from cgutils import linux
         self.cgroup = cgroup
 
         # To keep the files open
