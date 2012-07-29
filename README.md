@@ -1,14 +1,22 @@
 #What is cgroup-utils?
 
 cgroup-utils provides utility tools and libraries for control groups of Linux.
-For example, cgtop is a top-like tool which shows activities of running processes based on the POV of control groups.
+For example, cgutil top is a top-like tool which shows activities of running processes in control groups.
 
 #Installation
 
+## For users
+
+    $ sudo pip install cgroup-utils
+
+## For developers
+
+    $ git clone git://github.com/peo3/cgroup-utils.git
+    $ cd cgroup-utils
     $ python setup.py build
     $ sudo python setup.py install
 
-##Packaging (rpm)
+###Packaging (rpm)
 
     $ python setup.py bdist --formats=rpm
 
