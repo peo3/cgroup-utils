@@ -199,7 +199,7 @@ c 251:4 rwm
 class DevicesStat(list):
     @staticmethod
     def parse(content):
-        return content.split('\n')[:-1]
+        return [v for v in content.split('\n')[:-1] if v]
 
 """
 total=83920 N0=83920
