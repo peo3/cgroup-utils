@@ -43,15 +43,15 @@ class CGTopStats:
 
         self.hostcpuinfo = host.CPUInfo()
 
-        self.delta = {}
-        self.prev = {}
+        self.deltas = {}
+        self.prevs = {}
 
-        self.delta['cpu'] = 0
-        self.delta['time'] = 0
+        self.deltas['cpu'] = 0
+        self.deltas['time'] = 0
 
         self.cgroups = {}
-        self.last_update_cgroups = 0.0
         self._update_cgroups()
+        self.last_update_cgroups = time.time()
 
     def _update_cgroups(self):
         def collect_by_name(cg, store):
@@ -68,10 +68,9 @@ class CGTopStats:
             except EnvironmentError, e:
                 print >> sys.stderr, e
         self.cgroups = cgroups
+
         if self.options.hide_root:
             del self.cgroups['<root>']
-
-        self.last_update_cgroups = time.time()
 
     def _get_skelton_stats(self, name, n_procs):
         return {
@@ -111,29 +110,29 @@ class CGTopStats:
 
             if cpu:
                 def percent(delta):
-                    return float(delta)*100/self.delta['cpu']
+                    return float(delta)*100/self.deltas['cpu']
                     
-                if self.delta['cpu'] and cpu in self.delta:
-                    stats['cpu.user']   = percent(self.delta[cpu]['user'])
-                    stats['cpu.system'] = percent(self.delta[cpu]['system'])
+                if self.deltas['cpu'] and cpu in self.deltas:
+                    stats['cpu.user']   = percent(self.deltas[cpu]['user'])
+                    stats['cpu.system'] = percent(self.deltas[cpu]['system'])
                 if (stats['cpu.user'] + stats['cpu.system']) > 0.0:
                     active = True
 
             if bio:
                 def byps(delta):
-                    return float(delta)/self.delta['time']
-                if self.delta['time'] and bio in self.delta:
-                    stats['bio.read']  = byps(self.delta[bio]['read'])
-                    stats['bio.write'] = byps(self.delta[bio]['write'])
+                    return float(delta)/self.deltas['time']
+                if self.deltas['time'] and bio in self.deltas:
+                    stats['bio.read']  = byps(self.deltas[bio]['read'])
+                    stats['bio.write'] = byps(self.deltas[bio]['write'])
                 if (stats['bio.read'] + stats['bio.write']) > 0.0:
                     active = True
 
             if mem:
-                if mem in self.delta:
-                    stats['mem.total'] = self.delta[mem]['total']
-                    stats['mem.rss']   = self.delta[mem]['rss']
-                    if 'swap' in self.delta[mem]:
-                        stats['mem.swap']  = self.delta[mem]['swap']
+                if mem in self.deltas:
+                    stats['mem.total'] = self.deltas[mem]['total']
+                    stats['mem.rss']   = self.deltas[mem]['rss']
+                    if 'swap' in self.deltas[mem]:
+                        stats['mem.swap']  = self.deltas[mem]['swap']
                 if [stats['mem.total'], stats['mem.rss'], \
                     stats['mem.swap']].count(0) != 3:
                     active = True
@@ -189,14 +188,15 @@ class CGTopStats:
         }
 
     def _update_delta(self, key, new):
-        if key in self.prev:
-            self.delta[key] = self._diff[new.__class__](new, self.prev[key])
-        self.prev[key] = new
+        if key in self.prevs:
+            self.deltas[key] = self._diff[new.__class__](new, self.prevs[key])
+        self.prevs[key] = new
 
     def update(self):
         if (time.time() - self.last_update_cgroups) > self.options.update_cgroups_interval:
             # Update cgroups hierarchy to know newcomers
             self._update_cgroups()
+            self.last_update_cgroups = time.time()
 
         removed_group_names = []
         # Read stats from cgroups and calculate deltas
@@ -332,7 +332,7 @@ class CGTopUI:
             debug_msg = "%.1f msec to collect statistics" % ((aft-bef)*1000,)
             self.refresh_display(debug_msg)
 
-            if self.options.iterations is not None:
+            if self.options.iterations:
                 iterations += 1
                 if iterations >= self.options.iterations:
                     break
