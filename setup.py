@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 from cgutils.version import VERSION
 
 mod_linux = Extension('linux', sources=['cgutils/linux.c'])
@@ -33,4 +33,9 @@ setup(name='cgroup-utils',
       url='https://github.com/peo3/cgroup-utils',
       license='GPLv2',
       classifiers=classifiers,
+      tests_require=['nose'],
+      test_suite='nose.collector',
+      extras_require=dict(
+              test=['nose'],
+              ),
 )
