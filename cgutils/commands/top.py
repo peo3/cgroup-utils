@@ -55,9 +55,9 @@ class CGTopStats:
 
     def _update_cgroups(self):
         def collect_by_name(cg, store):
-            if cg.name not in store:
-                store[cg.name] = []
-            store[cg.name].append(cg)
+            if cg.fullname not in store:
+                store[cg.fullname] = []
+            store[cg.fullname].append(cg)
     
         # Collect cgroups by group name (path)
         cgroups = {}
