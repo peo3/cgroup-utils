@@ -491,6 +491,12 @@ class CGroup(object):
     def __str__(self):
         return "<CGroup: %s (%s)>" % (self.fullname, self.subsystem.name)
 
+    def __hash__(self):
+        return hash((self.fullname, self.subsystem.name))
+
+    def __eq__(self, obj):
+        return self.fullname == obj.fullname and self.subsystem.name == obj.subsystem.name
+
     def get_configs(self):
         configs = {}
         for name, default in self.configs.iteritems():

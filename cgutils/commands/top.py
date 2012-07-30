@@ -41,6 +41,19 @@ class CGTopStats:
     def __init__(self, options):
         self.options = options
 
+        self.hostcpuinfo = host.CPUInfo()
+
+        self.delta = {}
+        self.prev = {}
+
+        self.delta['cpu'] = 0
+        self.delta['time'] = 0
+
+        self.cgroups = {}
+        self.last_update_cgroups = 0.0
+        self._update_cgroups()
+
+    def _update_cgroups(self):
         def collect_by_name(cg, store):
             if cg.name not in store:
                 store[cg.name] = []
@@ -55,16 +68,10 @@ class CGTopStats:
             except EnvironmentError, e:
                 print >> sys.stderr, e
         self.cgroups = cgroups
-        if options.hide_root:
+        if self.options.hide_root:
             del self.cgroups['<root>']
 
-        self.hostcpuinfo = host.CPUInfo()
-
-        self.delta = {}
-        self.prev = {}
-
-        self.delta['cpu'] = 0
-        self.delta['time'] = 0
+        self.last_update_cgroups = time.time()
 
     def _get_skelton_stats(self, name, n_procs):
         return {
@@ -187,8 +194,12 @@ class CGTopStats:
         self.prev[key] = new
 
     def update(self):
-        # Read stats from cgroups and calculate deltas
+        if (time.time() - self.last_update_cgroups) > self.options.update_cgroups_interval:
+            # Update cgroups hierarchy to know newcomers
+            self._update_cgroups()
+
         removed_group_names = []
+        # Read stats from cgroups and calculate deltas
         for name, cgroup_list in self.cgroups.iteritems():
             try:
                 for _cgroup in cgroup_list:
@@ -506,8 +517,11 @@ class Command(command.Command):
                       metavar='NUM',
                       help='Number of iterations before ending [infinite]')
     parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
-                      help='Delay between iterations [3 second]',
+                      help='Delay between iterations [3 seconds]',
                       metavar='SEC', default=3)
+    parser.add_option('-u', '--update-cgroups-interval', type='float', dest='update_cgroups_interval',
+                      help='Update cgroups in every this interval [10 seconds]',
+                      metavar='SEC', default=10)
 
 
     def _run_window(self, win):
