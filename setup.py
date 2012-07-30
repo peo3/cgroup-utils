@@ -16,7 +16,7 @@ classifiers = [
     'Topic :: System :: Operating System Kernels :: Linux',
     'Topic :: System :: Systems Administration',
     'Topic :: Utilities',
-    ]
+]
 
 long_description = open('README').read()
 
@@ -24,7 +24,7 @@ setup(name='cgroup-utils',
       version=VERSION,
       description='Utility tools for control groups of Linux',
       long_description=long_description,
-      scripts=['bin/cgutil',],
+      scripts=['bin/cgutil'],
       packages=['cgutils', 'cgutils.commands'],
       ext_package='cgutils',
       ext_modules=[mod_linux],
@@ -36,6 +36,5 @@ setup(name='cgroup-utils',
       tests_require=['nose'],
       test_suite='nose.collector',
       extras_require=dict(
-              test=['nose'],
-              ),
-)
+          test=['nose'],
+      ),)
