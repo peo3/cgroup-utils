@@ -16,69 +16,79 @@
 #
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
 
-"""
-    CPU
-"""
-USEC = 1000*1000*1000
-DAY = 60*60*24
-HOUR = 60*60
+#
+# CPU
+#
+USEC = 1000 * 1000 * 1000
+DAY = 60 * 60 * 24
+HOUR = 60 * 60
 MINUTE = 60
+
+
 def usec(sec):
     sec = float(sec) / USEC
     if sec > DAY:
-        return "%.1fd" % (sec/DAY,)
+        return "%.1fd" % (sec / DAY)
     if sec > HOUR:
-        return "%.1fh" % (sec/HOUR,)
+        return "%.1fh" % (sec / HOUR)
     elif sec > MINUTE:
-        return "%.1fm" % (sec/MINUTE,)
+        return "%.1fm" % (sec / MINUTE)
     else:
         return "%.1fs" % sec
 
+
 max_width_time = len('NNN.N_')
+
 
 def percent(per):
     return "%.1f%%" % per
 
+
 max_width_percent = len('NNN.N%')
 max_width_cpu = max_width_percent
 
-"""
-    Memory
-"""
-GiB = 1024*1024*1024
-MiB = 1024*1024
+
+#
+# Memory
+#
+GiB = 1024 * 1024 * 1024
+MiB = 1024 * 1024
 KiB = 1024
-GB = 1000*1000*1000
-MB = 1000*1000
+GB = 1000 * 1000 * 1000
+MB = 1000 * 1000
 KB = 1000
+
+
 def byte(_byte):
     _byte = float(_byte)
     if abs(_byte) > GB:
-        return "%.1fG" % (_byte/GiB,)
+        return "%.1fG" % (_byte / GiB)
     elif abs(_byte) > MB:
-        return "%.1fM" % (_byte/MiB,)
+        return "%.1fM" % (_byte / MiB)
     elif abs(_byte) > KB:
-        return "%.1fk" % (_byte/KiB,)
+        return "%.1fk" % (_byte / KiB)
     else:
         return "%.1f " % _byte
+
 
 max_width_byte = len('-NNN.N_')
 max_width_memory = max_width_byte
 
-"""
-    Block I/O
-"""
+
+#
+# Block I/O
+#
 def bytepersec(_byte):
     _byte = float(_byte)
     if _byte > GB:
-        return "%.1fG/s" % (_byte/GiB,)
+        return "%.1fG/s" % (_byte / GiB)
     elif _byte > MB:
-        return "%.1fM/s" % (_byte/MiB,)
+        return "%.1fM/s" % (_byte / MiB)
     elif _byte > KB:
-        return "%.1fk/s" % (_byte/KiB,)
+        return "%.1fk/s" % (_byte / KiB)
     else:
         return "%.1f /s" % _byte
 
+
 max_width_byps = len('NNN.N_/s')
 max_width_blkio = max_width_byps
-

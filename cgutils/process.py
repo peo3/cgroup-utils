@@ -17,25 +17,28 @@
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
 
 from __future__ import with_statement
-import os, os.path
+import os
+import os.path
+
 
 def readfile(filepath):
     with open(filepath) as f:
         return f.read()
 
+
 class Process(object):
     def __init__(self, pid):
         self.pid = pid
 
-        items = readfile('/proc/%d/stat'%(pid,)).split(' ')
+        items = readfile('/proc/%d/stat' % pid).split(' ')
         self.name = items[1].lstrip('(').rstrip(')')
         self.state = items[2]
         self.ppid = int(items[3])
         self.pgid = int(items[4])
-        self.sid  = int(items[5])
+        self.sid = int(items[5])
         if not self.is_kthread():
             self.name = self._get_fullname()
-            cmdline = readfile('/proc/%d/cmdline'%(self.pid,))
+            cmdline = readfile('/proc/%d/cmdline' % self.pid)
             self.cmdline = cmdline.rstrip('\0').replace('\0', ' ')
         else:
             self.cmdline = self.name
@@ -52,7 +55,7 @@ class Process(object):
             self.autogroup = None
 
     def _get_fullname(self):
-        cmdline = readfile('/proc/%d/cmdline'%(self.pid,))
+        cmdline = readfile('/proc/%d/cmdline' % self.pid)
         if '\0' in cmdline:
             args = cmdline.rstrip('\0').split('\0')
             if ' ' in args[0]:
@@ -84,4 +87,3 @@ class Process(object):
 
     def is_running(self):
         return self.state == 'R'
-

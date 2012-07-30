@@ -23,31 +23,37 @@ from cgutils import cgroup
 from cgutils import command
 from cgutils import process
 
+
 def readfile(filepath):
     with open(filepath) as f:
         return f.read()
 
+
 DECORATER = {
-    'red':       lambda s: '\033[31m'+s+'\033[0m',
-    'green':     lambda s: '\033[32m'+s+'\033[0m',
-    'bold':      lambda s: '\033[1m'+s+'\033[0m',
-    'lightblue': lambda s: '\033[95m'+s+'\033[0m',
-    'underline': lambda s: '\033[4m'+s+'\033[0m',
-    'blink':     lambda s: '\033[5m'+s+'\033[0m',
-    'kthread':       lambda s: '['+s+']',
-    'cgroup':        lambda s: DECORATER['bold'](DECORATER['red'](s)),
-    'autogroup':     lambda s: DECORATER['bold'](DECORATER['green'](s)),
-    'groupleader':   lambda s: DECORATER['lightblue'](s),
+    'red': lambda s: '\033[31m' + s + '\033[0m',
+    'green': lambda s: '\033[32m' + s + '\033[0m',
+    'bold': lambda s: '\033[1m' + s + '\033[0m',
+    'lightblue': lambda s: '\033[95m' + s + '\033[0m',
+    'underline': lambda s: '\033[4m' + s + '\033[0m',
+    'blink': lambda s: '\033[5m' + s + '\033[0m',
+    'kthread': lambda s: '[' + s + ']',
+    'cgroup': lambda s: DECORATER['bold'](DECORATER['red'](s)),
+    'autogroup': lambda s: DECORATER['bold'](DECORATER['green'](s)),
+    'groupleader': lambda s: DECORATER['lightblue'](s),
     'sessionleader': lambda s: DECORATER['underline'](s),
-    'running':       lambda s: DECORATER['blink'](s),
+    'running': lambda s: DECORATER['blink'](s),
 }
+
+
 def decorate(string, type):
     return DECORATER[type](string)
+
 
 class AutoGroup():
     def __init__(self, name, pids):
         self.name = name
         self.pids = pids
+
 
 class TreeContainer():
     def __init__(self, this):
@@ -97,14 +103,14 @@ class Command(command.Command):
         s = ''
         for n in range(len(indents)):
             indent = indents[n]
-            if indent == 'cont' and n == len(indents)-1:
-                s += ' '*(self._INDENT_SIZE-1)+'+'
+            if indent == 'cont' and n == len(indents) - 1:
+                s += ' ' * (self._INDENT_SIZE - 1) + '+'
             elif indent == 'cont':
-                s += ' '*(self._INDENT_SIZE-1)+'|'
-            elif indent == 'last' and n == len(indents)-1:
-                s += ' '*(self._INDENT_SIZE-1)+'`'
+                s += ' ' * (self._INDENT_SIZE - 1) + '|'
+            elif indent == 'last' and n == len(indents) - 1:
+                s += ' ' * (self._INDENT_SIZE - 1) + '`'
             else:
-                s += ' '*self._INDENT_SIZE
+                s += ' ' * self._INDENT_SIZE
         return s
 
     def _print_process(self, proc, indents):
@@ -228,7 +234,8 @@ class Command(command.Command):
 
     def run(self, args):
         if self.options.show_autogroup and self.options.target_subsystem != 'cpu':
-            print("Error: autogroup is meaningless for %s subsystem" % self.options.target_subsystem)
+            print("Error: autogroup is meaningless for %s subsystem" %
+                  self.options.target_subsystem)
             sys.exit(1)
 
         root_cgroup = cgroup.scan_cgroups(self.options.target_subsystem)
@@ -240,9 +247,9 @@ class Command(command.Command):
             _cgroup = container.this
             for child in _cgroup.childs:
                 child.update()
-                if self.options.hide_empty and \
-                   len(child.childs) == 0 and \
-                   len(child.pids) == 0:
+                n_childs = len(child.childs)
+                n_pids = len(child.pids)
+                if self.options.hide_empty and n_childs == 0 and n_pids == 0:
                     continue
                 cont = TreeContainer(child)
                 container.childs.append(cont)
@@ -257,7 +264,8 @@ class Command(command.Command):
                 print(_cgroup.pids)
 
             if self.options.show_autogroup and container == root_container:
-                # Autogroup is effective only when processes don't belong to any cgroup
+                # Autogroup is effective only when processes don't belong
+                # to any cgroup
                 groups = self._build_autogroup_container_tree(_cgroup.pids)
                 container.childs.extend(groups)
             else:
@@ -279,9 +287,9 @@ class Command(command.Command):
                 self._print_autogroup(cont.this, indents)
             for child in cont.childs:
                 if child == cont.childs[-1]:
-                    _indents = indents+['last']
+                    _indents = indents + ['last']
                 else:
-                    _indents = indents+['cont']
+                    _indents = indents + ['cont']
                 print_containers_recursively(child, _indents)
 
         print_containers_recursively(root_container, [])

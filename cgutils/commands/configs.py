@@ -23,6 +23,7 @@ from cgutils import command
 from cgutils import formatter
 from cgutils import host
 
+
 class Command(command.Command):
     NAME = 'configs'
     DEFAULT_SUBSYSTEM = 'cpu'
@@ -57,7 +58,7 @@ class Command(command.Command):
         'swappiness': None,
         'shares': None,
         'weight': None,
-        }
+    }
 
     def _print_configs(self, configs, defaults):
         for name, val in configs.iteritems():
@@ -122,4 +123,3 @@ class Command(command.Command):
             for name, (configs, defaults) in cgroups.iteritems():
                 print(name)
                 self._print_configs(configs, defaults)
-

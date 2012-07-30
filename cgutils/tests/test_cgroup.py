@@ -1,5 +1,6 @@
 from cgutils import cgroup
 
+
 def test_SimpleList():
     input = '100\n103\n234\n'
     assert cgroup.SimpleList.parse(input) == [100, 103, 234]
@@ -10,12 +11,15 @@ def test_SimpleList():
     input = ''
     assert cgroup.SimpleList.parse(input) == []
 
+
 def test_SimpleStat():
     input = 'user 2978976\nsystem 1037760\n'
-    assert cgroup.SimpleStat.parse(input) == {'user': 2978976, 'system': 1037760}
+    assert cgroup.SimpleStat.parse(input) == \
+        {'user': 2978976, 'system': 1037760}
 
     input = ''
     assert cgroup.SimpleStat.parse(input) == {}
+
 
 def test_BlkioStat():
     input = """8:0 Read 72650752
@@ -33,8 +37,8 @@ Total 100741120
             'Sync': 28090368,
             'Async': 72650752,
             'Total': 100741120,
-            }
         }
+    }
     assert cgroup.BlkioStat.parse(input) == output
 
     input = """8:0 Read 72650752
@@ -58,16 +62,17 @@ Total 201482240
             'Sync': 28090368,
             'Async': 72650752,
             'Total': 100741120,
-            },
+        },
         '9:0': {
             'Read': 72650752,
             'Write': 28090368,
             'Sync': 28090368,
             'Async': 72650752,
             'Total': 100741120,
-            }
         }
+    }
     assert cgroup.BlkioStat.parse(input) == output
+
 
 def test_DevicesStat():
     input = """a *:* rwm
@@ -79,11 +84,12 @@ c 1:3 rwm
         'a *:* rwm',
         'c 136:* rwm',
         'c 1:3 rwm',
-        ]
+    ]
     assert cgroup.DevicesStat.parse(input) == output
 
     input = ''
     assert cgroup.DevicesStat.parse(input) == []
+
 
 def test_NumaStat():
     input = """total=83920 N0=83920
@@ -95,21 +101,22 @@ unevictable=0 N0=0
         'total': {
             'total': 83920,
             'N0': 83920,
-            },
+        },
         'file': {
             'total': 63452,
             'N0': 63452,
-            },
+        },
         'anon': {
             'total': 20468,
             'N0': 20468,
-            },
+        },
         'unevictable': {
             'total': 0,
             'N0': 0,
-            },
-        }
+        },
+    }
     assert cgroup.NumaStat.parse(input) == output
+
 
 def test_PercpuStat():
     # A line may end with a redundant space

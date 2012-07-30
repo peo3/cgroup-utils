@@ -17,8 +17,10 @@
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
 
 from __future__ import with_statement
-import os, os.path
+import os
+import os.path
 import re
+
 
 try:
     import multiprocessing
@@ -29,9 +31,11 @@ except ImportError:
             return readfile('/proc/cpuinfo').count('processor')
     multiprocessing = Multiprocessing()
 
+
 def readfile(filepath):
     with open(filepath) as f:
         return f.read()
+
 
 class CPUInfo():
     def get_online(self):
@@ -39,9 +43,10 @@ class CPUInfo():
 
     def get_total_usage(self):
         line = readfile('/proc/stat').split('\n')[0]
-        line = line[5:] # get rid of 'cpu  '
+        line = line[5:]  # get rid of 'cpu  '
         usages = [int(x) for x in line.split(' ')]
-        return sum(usages)/multiprocessing.cpu_count()
+        return sum(usages) / multiprocessing.cpu_count()
+
 
 class MemInfo(dict):
     def get_online(self):
@@ -51,20 +56,18 @@ class MemInfo(dict):
             return readfile('/sys/devices/system/node/online').strip()
 
     _p = re.compile('^(?P<key>[\w\(\)]+):\s+(?P<val>\d+)')
+
     def _update(self):
         for line in readfile('/proc/meminfo').split('\n'):
             m = self._p.search(line)
             if m:
-                self[m.group('key')] = int(m.group('val'))*1024
+                self[m.group('key')] = int(m.group('val')) * 1024
 
     def _calc(self):
-        self['MemUsed'] = self['MemTotal'] - self['MemFree'] - \
-                          self['Buffers'] - self['Cached']
-        self['SwapUsed'] = self['SwapTotal'] - self['SwapFree'] - \
-                           self['SwapCached']
-        self['MemKernel'] = self['Slab'] + self['KernelStack'] + \
-                            self['PageTables'] + self['VmallocUsed']
+        self['MemUsed'] = self['MemTotal'] - self['MemFree'] - self['Buffers'] - self['Cached']
+        self['SwapUsed'] = self['SwapTotal'] - self['SwapFree'] - self['SwapCached']
+        self['MemKernel'] = self['Slab'] + self['KernelStack'] + self['PageTables'] + self['VmallocUsed']
+
     def update(self):
         self._update()
         self._calc()
-

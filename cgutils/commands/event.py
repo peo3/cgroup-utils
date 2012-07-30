@@ -21,10 +21,12 @@
 
 from __future__ import with_statement
 import sys
-import os, os.path
+import os
+import os.path
 
 from cgutils import cgroup
 from cgutils import command
+
 
 class Command(command.Command):
     NAME = 'event'
@@ -63,7 +65,7 @@ class Command(command.Command):
 
         cur = long(self._readfile(target_file))
         if self.options.debug:
-            print "Before: %d (%d MB)" % (cur, cur/1024/1024)
+            print "Before: %d (%d MB)" % (cur, cur / 1024 / 1024)
 
         if threshold[0] == '+':
             threshold = threshold.replace('+', '')
@@ -77,7 +79,7 @@ class Command(command.Command):
         listener.set_threshold(threshold)
 
         if self.options.debug:
-            print "Threshold: %d (%d MB)" % (threshold, threshold/1024/1024)
+            print "Threshold: %d (%d MB)" % (threshold, threshold / 1024 / 1024)
 
         #ret = listener.wait()
         listener.wait()
@@ -87,4 +89,4 @@ class Command(command.Command):
             sys.exit(1)
         if self.options.debug:
             cur = long(self._readfile(target_file))
-            print "After: %d (%d MB)" % (cur, cur/1024/1024)
+            print "After: %d (%d MB)" % (cur, cur / 1024 / 1024)

@@ -17,11 +17,13 @@
 # Copyright (c) 2012 peo3 <peo314159265@gmail.com>
 
 from __future__ import with_statement
-import os, os.path
+import os
+import os.path
 
 from cgutils import cgroup
 from cgutils import command
 from cgutils import process
+
 
 class Command(command.Command):
     NAME = 'pgrep'
@@ -76,7 +78,6 @@ class Command(command.Command):
                             output = "%d %s" % (proc.pid, proc.name)
                     else:
                         output = str(proc.pid)
-                    print('%s: %s'%(cg.path, output))
+                    print('%s: %s' % (cg.path, output))
 
         cgroup.walk_cgroups(root_cgroup, print_matched, None)
-

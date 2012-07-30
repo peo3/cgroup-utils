@@ -17,17 +17,23 @@
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
 
 from __future__ import with_statement
-import os, os.path
+import os
+import os.path
 import re
 import struct
 
 from cgutils import host
 
+
 def readfile(filepath):
     with open(filepath) as f:
         return f.read()
 
+
 class SubsystemStatus(dict):
+    __RE = '^(?P<name>\w+)\s+(?P<hier>\d+)\s+(?P<n>\d+)\s+(?P<enabled>[01])'
+    _RE_CGROUPS = re.compile(__RE)
+
     def __init__(self):
         dict.__init__(self)
         self.paths = {}
@@ -47,11 +53,11 @@ class SubsystemStatus(dict):
         freezer	0	1	1
         net_cls	0	1	1
         """
-        p = re.compile('^(?P<name>\w+)\s+(?P<hier>\d+)\s+(?P<n>\d+)\s+(?P<enabled>[01])')
         lines = readfile('/proc/cgroups').split('\n')
         for line in lines:
-            m = p.match(line)
-            if m is None: continue
+            m = self._RE_CGROUPS.match(line)
+            if m is None:
+                continue
 
             name = m.group('name')
             hierarchy = int(m.group('hier'))
@@ -71,15 +77,16 @@ class SubsystemStatus(dict):
         """Parse /proc/mounts"""
 
         """
-        cgroup /dev/cgroup/cpu cgroup rw,relatime,cpuacct,cpu,release_agent=/usr/local/sbin/cgroup_clean 0 0
-        cgroup /dev/cgroup/memory cgroup rw,relatime,memory 0 0
-        cgroup /dev/cgroup/blkio cgroup rw,relatime,blkio 0 0
-        cgroup /dev/cgroup/freezer cgroup rw,relatime,freezer 0 0
+        cgroup /cgroup/cpu cgroup rw,relatime,cpuacct,cpu,release_agent=/sbin/cgroup_clean 0 0
+        cgroup /cgroup/memory cgroup rw,relatime,memory 0 0
+        cgroup /cgroup/blkio cgroup rw,relatime,blkio 0 0
+        cgroup /cgroup/freezer cgroup rw,relatime,freezer 0 0
         """
 
         lines = readfile('/proc/mounts').split('\n')
         for line in lines:
-            if 'cgroup' not in line: continue
+            if 'cgroup' not in line:
+                continue
 
             items = line.split(' ')
             path = items[1]
@@ -117,7 +124,7 @@ class SubsystemStatus(dict):
 
     def get_available(self):
         return [name for name in self.keys()
-                if self[name]['enabled'] ]
+                if self[name]['enabled']]
 
     def get_enabled(self):
         return self.paths.keys()
@@ -125,11 +132,7 @@ class SubsystemStatus(dict):
     def get_path(self, subsys):
         return self.paths[subsys]
 
-"""
-100
-103
-234
-"""
+
 class SimpleList(list):
     @staticmethod
     def parse(content):
@@ -138,10 +141,7 @@ class SimpleList(list):
             ret.append(long(line))
         return ret
 
-"""
-user 2978976
-system 1037760
-"""
+
 class SimpleStat(dict):
     @staticmethod
     def parse(content):
@@ -151,14 +151,7 @@ class SimpleStat(dict):
             ret[name] = long(val)
         return ret
 
-"""
-8:0 Read 72650752
-8:0 Write 28090368
-8:0 Sync 28090368
-8:0 Async 72650752
-8:0 Total 100741120
-Total 100741120
-"""
+
 class BlkioStat(dict):
     @staticmethod
     def parse(content):
@@ -176,37 +169,13 @@ class BlkioStat(dict):
                 raise EnvironmentError(line)
         return ret
 
-"""
-a *:* rwm
 
-c 136:* rwm
-c 1:3 rwm
-c 1:7 rwm
-c 1:5 rwm
-c 1:8 rwm
-c 1:9 rwm
-c 5:2 rwm
-c 10:232 rwm
-c 254:0 rwm
-c 10:228 rwm
-c 10:200 rwm
-c 251:0 rwm
-c 251:1 rwm
-c 251:2 rwm
-c 251:3 rwm
-c 251:4 rwm
-"""
 class DevicesStat(list):
     @staticmethod
     def parse(content):
         return [v for v in content.split('\n')[:-1] if v]
 
-"""
-total=83920 N0=83920
-file=63452 N0=63452
-anon=20468 N0=20468
-unevictable=0 N0=0
-"""
+
 class NumaStat(dict):
     @staticmethod
     def parse(content):
@@ -223,10 +192,7 @@ class NumaStat(dict):
             ret[name] = item
         return ret
 
-"""
-# Two CPUs
-836842800783 656015556351 
-"""
+
 class PercpuStat(dict):
     @staticmethod
     def parse(content):
@@ -234,12 +200,13 @@ class PercpuStat(dict):
         line = content.split('\n')[0]
         stats = line.split(' ')
         # A line may end with a redundant space
-        stats = [ stat for stat in stats if stat != '' ]
+        stats = [stat for stat in stats if stat != '']
         i = 0
         for stat in stats:
             ret[i] = long(stat)
             i += 1
         return ret
+
 
 #
 # The base class of subsystems
@@ -253,12 +220,13 @@ class Subsystem(object):
     def __init__(self):
         self.name = self.NAME
 
+
 #
 # Classes of each subsystem
 #
 class SubsystemCpu(Subsystem):
     NAME = 'cpu'
-    _path_rt_period  = '/proc/sys/kernel/sched_rt_period_us'
+    _path_rt_period = '/proc/sys/kernel/sched_rt_period_us'
     _path_rt_runtime = '/proc/sys/kernel/sched_rt_runtime_us'
     STATS = {
         'stat': SimpleStat,
@@ -272,6 +240,7 @@ class SubsystemCpu(Subsystem):
         'cfs_quota_us': -1,
     }
 
+
 class SubsystemCpuacct(Subsystem):
     NAME = 'cpuacct'
     STATS = {
@@ -279,6 +248,7 @@ class SubsystemCpuacct(Subsystem):
         'stat': SimpleStat,
         'usage_percpu': PercpuStat,
     }
+
 
 class SubsystemCpuset(Subsystem):
     NAME = 'cpuset'
@@ -301,6 +271,7 @@ class SubsystemCpuset(Subsystem):
         'sched_relax_domain_level': -1,
     }
 
+
 class SubsystemMemory(Subsystem):
     NAME = 'memory'
     STATS = {
@@ -316,12 +287,12 @@ class SubsystemMemory(Subsystem):
         'kmem.tcp.max_usage_in_bytes': long,
         'kmem.tcp.usage_in_bytes': long,
     }
-    MAX_ULONGLONG = 2**63-1
+    MAX_ULONGLONG = 2 ** 63 - 1
     CONFIGS = {
         'limit_in_bytes': MAX_ULONGLONG,
         'memsw.limit_in_bytes': MAX_ULONGLONG,
         'move_charge_at_immigrate': 0,
-        'oom_control': SimpleStat({'oom_kill_disable':0, 'under_oom':0}),
+        'oom_control': SimpleStat({'oom_kill_disable': 0, 'under_oom': 0}),
         'soft_limit_in_bytes': MAX_ULONGLONG,
         'swappiness': 60,
         'use_hierarchy': 0,
@@ -330,6 +301,7 @@ class SubsystemMemory(Subsystem):
     CONTROLS = {
         'force_empty': None,
     }
+
 
 class SubsystemBlkio(Subsystem):
     NAME = 'blkio'
@@ -357,17 +329,20 @@ class SubsystemBlkio(Subsystem):
         'reset_stats': None,
     }
 
+
 class SubsystemFreezer(Subsystem):
     NAME = 'freezer'
     STATS = {
         'state': str,
     }
 
+
 class SubsystemNetCls(Subsystem):
     NAME = 'net_cls'
     CONFIGS = {
         'classid': 0,
     }
+
 
 class SubsystemDevices(Subsystem):
     NAME = 'devices'
@@ -379,6 +354,7 @@ class SubsystemDevices(Subsystem):
         'deny': None,
     }
 
+
 class SubsystemName(Subsystem):
     NAME = 'name'
 
@@ -386,20 +362,24 @@ class SubsystemName(Subsystem):
         Subsystem.__init__(self)
         self.name = name
 
+
 _subsystem_name2class = {
-    'cpu':SubsystemCpu,
-    'cpuacct':SubsystemCpuacct,
-    'cpuset':SubsystemCpuset,
-    'memory':SubsystemMemory,
-    'blkio':SubsystemBlkio,
-    'freezer':SubsystemFreezer,
-    'net_cls':SubsystemNetCls,
-    'devices':SubsystemDevices,
+    'cpu': SubsystemCpu,
+    'cpuacct': SubsystemCpuacct,
+    'cpuset': SubsystemCpuset,
+    'memory': SubsystemMemory,
+    'blkio': SubsystemBlkio,
+    'freezer': SubsystemFreezer,
+    'net_cls': SubsystemNetCls,
+    'devices': SubsystemDevices,
 }
+
+
 def _get_subsystem(name):
     if 'name=' in name:
         return SubsystemName(name)
     return _subsystem_name2class[name]()
+
 
 class CGroup(object):
     STATS = {
@@ -416,9 +396,9 @@ class CGroup(object):
         'cgroup.event_control': None,
     }
     PARSERS = {
-        int:  lambda content: int(content),
+        int: lambda content: int(content),
         long: lambda content: long(content),
-        str:  lambda content: content.strip(),
+        str: lambda content: content.strip(),
         SimpleList: SimpleList.parse,
         SimpleStat: SimpleStat.parse,
         BlkioStat: BlkioStat.parse,
@@ -457,9 +437,8 @@ class CGroup(object):
         self.paths = {}
         for file in self.STATS.keys() + self.CONFIGS.keys() + self.CONTROLS.keys():
             self.paths[file] = os.path.join(self.fullpath, file)
-        for file in subsystem.STATS.keys() + subsystem.CONFIGS.keys() + \
-                    subsystem.CONTROLS.keys():
-            self.paths[file] = os.path.join(self.fullpath, subsystem.name+'.'+file)
+        for file in subsystem.STATS.keys() + subsystem.CONFIGS.keys() + subsystem.CONTROLS.keys():
+            self.paths[file] = os.path.join(self.fullpath, subsystem.name + '.' + file)
 
         self.configs = {}
         self.stats = {}
@@ -522,6 +501,7 @@ class CGroup(object):
         self.pids = [int(pid) for pid in pids if pid != '']
         self.n_procs = len(pids)
 
+
 class EventListener(object):
     def __init__(self, cgroup, target_path):
         from cgutils import linux
@@ -542,8 +522,9 @@ class EventListener(object):
         os.write(self.ec_fd, line)
 
     def wait(self):
-        ret = os.read(self.event_fd, 64/8)
+        ret = os.read(self.event_fd, 64 / 8)
         return struct.unpack('Q', ret)
+
 
 def _scan_cgroups_recursive(subsystem, fullpath, mount_point, filters):
     cgroup = CGroup(subsystem, fullpath, filters)
@@ -553,15 +534,18 @@ def _scan_cgroups_recursive(subsystem, fullpath, mount_point, filters):
         child_fullpath = os.path.join(fullpath, _file)
         if os.path.isdir(child_fullpath):
             child = _scan_cgroups_recursive(subsystem, child_fullpath,
-                                           mount_point, filters)
+                                            mount_point, filters)
             _childs.append(child)
     cgroup.childs.extend(_childs)
     return cgroup
 
-"""
-  Public APIs
-"""
-class NoSuchSubsystemError(StandardError): pass
+
+#
+#  Public APIs
+#
+class NoSuchSubsystemError(StandardError):
+    pass
+
 
 def scan_cgroups(subsys_name, filters=list()):
     status = SubsystemStatus()
@@ -578,10 +562,12 @@ def scan_cgroups(subsys_name, filters=list()):
     mount_point = status.get_path(subsys_name)
     return _scan_cgroups_recursive(subsystem, mount_point, mount_point, filters)
 
+
 def walk_cgroups(cgroup, action, opaque):
     action(cgroup, opaque)
     for child in cgroup.childs:
         walk_cgroups(child, action, opaque)
+
 
 def get_cgroup(fullpath):
     status = SubsystemStatus()

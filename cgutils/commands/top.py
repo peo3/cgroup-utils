@@ -30,13 +30,14 @@ from cgutils import command
 from cgutils import host
 from cgutils import formatter
 
+
 class CGTopStats:
     SUBSYSTEMS = ['cpuacct', 'blkio', 'memory']
-    FILTERS   = {
+    FILTERS = {
         'cpuacct': ['stat'],
         'blkio':   ['io_service_bytes'],
         'memory':  ['usage_in_bytes', 'memsw.usage_in_bytes', 'stat'],
-        }
+    }
 
     def __init__(self, options):
         self.options = options
@@ -58,7 +59,7 @@ class CGTopStats:
             if cg.fullname not in store:
                 store[cg.fullname] = []
             store[cg.fullname].append(cg)
-    
+
         # Collect cgroups by group name (path)
         cgroups = {}
         for name in self.SUBSYSTEMS:
@@ -83,7 +84,7 @@ class CGTopStats:
             'mem.total': 0,
             'mem.rss': 0,
             'mem.swap':  0,
-            }
+        }
 
     def get_cgroup_stats(self):
         cgroup_stats = []
@@ -104,25 +105,25 @@ class CGTopStats:
             n_procs = len(set(pids))
             if not self.options.show_empty and n_procs == 0:
                 continue
-            
+
             active = False
             stats = self._get_skelton_stats(_cgroup.fullname, n_procs)
 
             if cpu:
                 def percent(delta):
-                    return float(delta)*100/self.deltas['cpu']
-                    
+                    return float(delta) * 100 / self.deltas['cpu']
+
                 if self.deltas['cpu'] and cpu in self.deltas:
-                    stats['cpu.user']   = percent(self.deltas[cpu]['user'])
+                    stats['cpu.user'] = percent(self.deltas[cpu]['user'])
                     stats['cpu.system'] = percent(self.deltas[cpu]['system'])
                 if (stats['cpu.user'] + stats['cpu.system']) > 0.0:
                     active = True
 
             if bio:
                 def byps(delta):
-                    return float(delta)/self.deltas['time']
+                    return float(delta) / self.deltas['time']
                 if self.deltas['time'] and bio in self.deltas:
-                    stats['bio.read']  = byps(self.deltas[bio]['read'])
+                    stats['bio.read'] = byps(self.deltas[bio]['read'])
                     stats['bio.write'] = byps(self.deltas[bio]['write'])
                 if (stats['bio.read'] + stats['bio.write']) > 0.0:
                     active = True
@@ -130,11 +131,13 @@ class CGTopStats:
             if mem:
                 if mem in self.deltas:
                     stats['mem.total'] = self.deltas[mem]['total']
-                    stats['mem.rss']   = self.deltas[mem]['rss']
+                    stats['mem.rss'] = self.deltas[mem]['rss']
                     if 'swap' in self.deltas[mem]:
-                        stats['mem.swap']  = self.deltas[mem]['swap']
-                if [stats['mem.total'], stats['mem.rss'], \
-                    stats['mem.swap']].count(0) != 3:
+                        stats['mem.swap'] = self.deltas[mem]['swap']
+                n = [stats['mem.total'],
+                     stats['mem.rss'],
+                     stats['mem.swap']].count(0)
+                if n != 3:
                     active = True
             if not self.options.show_inactive and not active:
                 pass
@@ -145,19 +148,20 @@ class CGTopStats:
     def __conv_blkio_stats(stats):
         n_reads = n_writes = 0L
         for k, v in stats['io_service_bytes'].iteritems():
-            if k == 'Total': continue
+            if k == 'Total':
+                continue
             n_reads += v['Read']
             n_writes += v['Write']
         return {
             'read': n_reads,
             'write': n_writes,
-            }
+        }
 
     def __conv_memory_stats(stats):
         _stats = {}
         _stats['total'] = stats['usage_in_bytes']
         if 'memsw.usage_in_bytes' in stats:
-            _stats['swap']  = stats['memsw.usage_in_bytes'] - _stats['total']
+            _stats['swap'] = stats['memsw.usage_in_bytes'] - _stats['total']
         _stats['rss'] = stats['stat']['rss']
         return _stats
 
@@ -165,13 +169,13 @@ class CGTopStats:
         return {
             'user': stats['stat']['user'],
             'system': stats['stat']['system'],
-            }
+        }
 
     _convert = {
         'memory': __conv_memory_stats,
         'cpuacct': __conv_cpu_stats,
         'blkio': __conv_blkio_stats,
-        }
+    }
 
     def __calc_delta(current, previous):
         delta = {}
@@ -185,7 +189,7 @@ class CGTopStats:
         int: lambda a, b: a - b,
         float: lambda a, b: a - b,
         dict: __calc_delta,
-        }
+    }
 
     def _update_delta(self, key, new):
         if key in self.prevs:
@@ -193,7 +197,8 @@ class CGTopStats:
         self.prevs[key] = new
 
     def update(self):
-        if (time.time() - self.last_update_cgroups) > self.options.update_cgroups_interval:
+        elapsed = time.time() - self.last_update_cgroups
+        if elapsed > self.options.update_cgroups_interval:
             # Update cgroups hierarchy to know newcomers
             self._update_cgroups()
             self.last_update_cgroups = time.time()
@@ -222,6 +227,7 @@ class CGTopStats:
 
         # Calculate delta of time
         self._update_delta('time', time.time())
+
 
 class CGTopUI:
     SORTING_KEYS = [
@@ -280,34 +286,20 @@ class CGTopUI:
             self.options.show_empty = not self.options.show_empty
 
         key_bindings = {
-            ord('q'):
-                lambda: sys.exit(0),
-            ord('Q'):
-                lambda: sys.exit(0),
-            ord('r'):
-                lambda: self.reverse_sorting(),
-            ord('R'):
-                lambda: self.reverse_sorting(),
-            ord('i'):
-                toggle_show_inactive,
-            ord('I'):
-                toggle_show_inactive,
-            ord('z'):
-                toggle_show_zero,
-            ord('Z'):
-                toggle_show_zero,
-            ord('e'):
-                toggle_show_empty,
-            ord('E'):
-                toggle_show_empty,
-            curses.KEY_LEFT:
-                lambda: self.adjust_sorting_key(-1),
-            curses.KEY_RIGHT:
-                lambda: self.adjust_sorting_key(1),
-            curses.KEY_HOME:
-                lambda: self.adjust_sorting_key(-len(self.SORTING_KEYS)),
-            curses.KEY_END:
-                lambda: self.adjust_sorting_key(len(self.SORTING_KEYS)),
+            ord('q'): lambda: sys.exit(0),
+            ord('Q'): lambda: sys.exit(0),
+            ord('r'): lambda: self.reverse_sorting(),
+            ord('R'): lambda: self.reverse_sorting(),
+            ord('i'): toggle_show_inactive,
+            ord('I'): toggle_show_inactive,
+            ord('z'): toggle_show_zero,
+            ord('Z'): toggle_show_zero,
+            ord('e'): toggle_show_empty,
+            ord('E'): toggle_show_empty,
+            curses.KEY_LEFT: lambda: self.adjust_sorting_key(-1),
+            curses.KEY_RIGHT: lambda: self.adjust_sorting_key(1),
+            curses.KEY_HOME: lambda: self.adjust_sorting_key(-len(self.SORTING_KEYS)),
+            curses.KEY_END: lambda: self.adjust_sorting_key(len(self.SORTING_KEYS)),
         }
 
         action = key_bindings.get(key, lambda: None)
@@ -320,16 +312,13 @@ class CGTopUI:
         iterations = 0
         poll = select.poll()
         if not self.options.batch:
-            poll.register(sys.stdin.fileno(), select.POLLIN|select.POLLPRI)
-        while self.options.iterations is None or \
-              iterations < self.options.iterations:
-
-
+            poll.register(sys.stdin.fileno(), select.POLLIN | select.POLLPRI)
+        while self.options.iterations is None or iterations < self.options.iterations:
             bef = time.time()
             self.cgstats.update()
             aft = time.time()
 
-            debug_msg = "%.1f msec to collect statistics" % ((aft-bef)*1000,)
+            debug_msg = "%.1f msec to collect statistics" % ((aft - bef) * 1000)
             self.refresh_display(debug_msg)
 
             if self.options.iterations:
@@ -354,30 +343,31 @@ class CGTopUI:
 
     def _init_display_params(self):
         subsys_sep_size = 2
-        self.SUBSYS_SEP = ' '*subsys_sep_size
-        item_sep_size   = 1
-        self.ITEM_SEP   = ' '*item_sep_size
+        self.SUBSYS_SEP = ' ' * subsys_sep_size
+        item_sep_size = 1
+        self.ITEM_SEP = ' ' * item_sep_size
         self.ITEM_WIDTHS = {
-            'cpuacct':   formatter.max_width_cpu,
-            'blkio':     formatter.max_width_blkio,
-            'memory':    formatter.max_width_memory,
-            'cpu.user':  formatter.max_width_cpu,
-            'cpu.system':formatter.max_width_cpu,
-            'bio.read':  formatter.max_width_blkio,
-            'bio.write': formatter.max_width_blkio,
-            'mem.total': formatter.max_width_memory,
-            'mem.rss':   formatter.max_width_memory,
-            'mem.swap':  formatter.max_width_memory,
-            'n_procs':   3,
-            'name':      0}
-        self.N_ITEMS = {'cpuacct':2, 'blkio': 2,
+            'cpuacct':    formatter.max_width_cpu,
+            'blkio':      formatter.max_width_blkio,
+            'memory':     formatter.max_width_memory,
+            'cpu.user':   formatter.max_width_cpu,
+            'cpu.system': formatter.max_width_cpu,
+            'bio.read':   formatter.max_width_blkio,
+            'bio.write':  formatter.max_width_blkio,
+            'mem.total':  formatter.max_width_memory,
+            'mem.rss':    formatter.max_width_memory,
+            'mem.swap':   formatter.max_width_memory,
+            'n_procs':    3,
+            'name':       0,
+        }
+        self.N_ITEMS = {'cpuacct': 2, 'blkio': 2,
                         'memory': 3, 'n_procs': 1, 'name': 1}
 
     def _init_subsys_title(self):
         title_list = []
         for name in self.cgstats.SUBSYSTEMS:
-            width = self.ITEM_WIDTHS[name]*self.N_ITEMS[name] + self.N_ITEMS[name] - 1
-            title = '[' + name.upper().center(width-2) + ']'
+            width = self.ITEM_WIDTHS[name] * self.N_ITEMS[name] + self.N_ITEMS[name] - 1
+            title = '[' + name.upper().center(width - 2) + ']'
             title_list.append(title)
         self.SUBSYS_TITLE = self.SUBSYS_SEP.join(title_list)
 
@@ -388,31 +378,31 @@ class CGTopUI:
         titles.append(sep.join([
             'USR'.center(w['cpu.user']),
             'SYS'.center(w['cpu.system']),
-            ]))
+        ]))
         titles.append(sep.join([
             'READ'.center(w['bio.read']),
             'WRITE'.center(w['bio.write']),
-            ]))
+        ]))
         titles.append(sep.join([
             'TOTAL'.center(w['mem.total']),
             'RSS'.center(w['mem.rss']),
             'SWAP'.center(w['mem.swap']),
-            ]))
+        ]))
         titles.append(sep.join([
             '#'.rjust(w['n_procs']),
             'NAME'.rjust(w['name']),
-            ]))
+        ]))
         self.ITEM_TITLE = self.SUBSYS_SEP.join(titles)
         self.KEY2TITLE = {
-            'cpu.user':  'USR',
-            'cpu.system':'SYS',
-            'bio.read':  'READ',
-            'bio.write': 'WRITE',
-            'mem.total': 'TOTAL',
-            'mem.rss':   'RSS',
-            'mem.swap':  'SWAP',
-            'n_procs':   '#',
-            'name':      'NAME',
+            'cpu.user':   'USR',
+            'cpu.system': 'SYS',
+            'bio.read':   'READ',
+            'bio.write':  'WRITE',
+            'mem.total':  'TOTAL',
+            'mem.rss':    'RSS',
+            'mem.swap':   'SWAP',
+            'n_procs':    '#',
+            'name':       'NAME',
         }
 
     def refresh_display(self, debug_msg):
@@ -422,13 +412,13 @@ class CGTopUI:
             strs = []
 
             item2formatters = {
-                'cpu.user':  formatter.percent,
-                'cpu.system':formatter.percent,
-                'bio.read':  formatter.bytepersec,
-                'bio.write': formatter.bytepersec,
-                'mem.total': formatter.byte,
-                'mem.rss':   formatter.byte,
-                'mem.swap':  formatter.byte,
+                'cpu.user':   formatter.percent,
+                'cpu.system': formatter.percent,
+                'bio.read':   formatter.bytepersec,
+                'bio.write':  formatter.bytepersec,
+                'mem.total':  formatter.byte,
+                'mem.rss':    formatter.byte,
+                'mem.swap':   formatter.byte,
             }
 
             def to_s(name):
@@ -443,13 +433,13 @@ class CGTopUI:
             strs.append(sep.join([
                 str(stats['n_procs']).rjust(w['n_procs']),
                 stats['name']]
-                ))
+            ))
             return self.SUBSYS_SEP.join(strs)
 
         cgroup_stats = self.cgstats.get_cgroup_stats()
         cgroup_stats.sort(key=lambda st: st[self.sorting_key],
                           reverse=self.sorting_reverse)
-        lines = [format(s) for s in  cgroup_stats]
+        lines = [format(s) for s in cgroup_stats]
 
         if self.options.batch:
             print debug_msg
@@ -477,7 +467,7 @@ class CGTopUI:
         key_title = self.KEY2TITLE[self.sorting_key]
         pre, post = self.ITEM_TITLE.split(key_title)
         self.win.addstr(pre, curses.A_REVERSE)
-        self.win.addstr(key_title, curses.A_BOLD|curses.A_REVERSE)
+        self.win.addstr(key_title, curses.A_BOLD | curses.A_REVERSE)
         self.win.addstr(post, curses.A_REVERSE)
 
         rest_lines = self.height - n_lines - int(bool(status_msg))
@@ -494,6 +484,7 @@ class CGTopUI:
         if status_msg:
             self.win.insstr(self.height - 1, 0, status_msg, curses.A_BOLD)
         self.win.refresh()
+
 
 class Command(command.Command):
     NAME = 'top'
@@ -519,10 +510,10 @@ class Command(command.Command):
     parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
                       help='Delay between iterations [3 seconds]',
                       metavar='SEC', default=3)
-    parser.add_option('-u', '--update-cgroups-interval', type='float', dest='update_cgroups_interval',
+    parser.add_option('-u', '--update-cgroups-interval', type='float',
+                      dest='update_cgroups_interval',
                       help='Update cgroups in every this interval [10 seconds]',
                       metavar='SEC', default=10)
-
 
     def _run_window(self, win):
         cgstats = CGTopStats(self.options)
@@ -534,4 +525,3 @@ class Command(command.Command):
             return self._run_window(None)
         else:
             return curses.wrapper(self._run_window)
-

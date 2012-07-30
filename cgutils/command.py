@@ -20,14 +20,15 @@ import optparse
 
 from cgutils.version import VERSION
 
+
 class Command():
     NAME = 'cgutil'
     parser = optparse.OptionParser(version="%s %s" % (NAME, VERSION))
     parser.add_option('--debug', action='store_true', dest='debug',
                       default=False, help='Show debug messages [False]')
+
     def __init__(self, options):
         self.options = options
 
         usage = "%%prog %s [options]" % self.NAME
         self.parser.usage = usage
-

@@ -21,6 +21,7 @@ import sys
 from cgutils import cgroup
 from cgutils import command
 
+
 class Command(command.Command):
     NAME = 'stats'
     DEFAULT_SUBSYSTEM = 'cpu'
@@ -39,22 +40,25 @@ class Command(command.Command):
                       dest='json', default=False,
                       help='Dump as JSON [False]')
 
-    _INDENT = ' '*4
+    _INDENT = ' ' * 4
+
     def _print_stats(self, cgname, stats):
         def print_recursive(name, value, indent):
             if isinstance(value, long):
                 if self.options.show_zero or value != 0:
-                    return "%s%s=%d\n" % (self._INDENT*indent, name, value)
+                    return "%s%s=%d\n" % (self._INDENT * indent, name, value)
             elif isinstance(value, list):
                 if self.options.show_zero or value:
                     values = [str(v) for v in value]
-                    return "%s%s=%s\n" % (self._INDENT*indent, name, ', '.join(values))
+                    return "%s%s=%s\n" % (self._INDENT * indent,
+                                          name,
+                                          ', '.join(values))
             elif isinstance(value, dict):
                 ret = ''
                 for n, v in value.iteritems():
-                    ret += print_recursive(n, v, indent+1)
+                    ret += print_recursive(n, v, indent + 1)
                 if ret:
-                    return "%s%s:\n" % (self._INDENT*indent, name) + ret
+                    return "%s%s:\n" % (self._INDENT * indent, name) + ret
             return ''
 
         ret = print_recursive(cgname, stats, 0)
@@ -81,4 +85,3 @@ class Command(command.Command):
         else:
             for cgname, stats in cgroups.iteritems():
                 self._print_stats(cgname, stats)
-
