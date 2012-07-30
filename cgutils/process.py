@@ -70,7 +70,7 @@ class Process(object):
             scripts = ['python', 'ruby', 'perl']
             # Want to catch /usr/bin/python1.7 ...
             if len([s for s in scripts if s in name]) > 0:
-                name = os.path.basename(args[1])
+                name = os.path.basename(' '.join(args[0:2]))
         return name
 
     def is_kthread(self):
