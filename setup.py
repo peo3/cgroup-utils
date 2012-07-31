@@ -33,8 +33,11 @@ setup(name='cgroup-utils',
       url='https://github.com/peo3/cgroup-utils',
       license='GPLv2',
       classifiers=classifiers,
-      tests_require=['nose'],
+      tests_require=['nose', 'pep8'],
       test_suite='nose.collector',
       extras_require=dict(
-          test=['nose'],
+          test=[
+              'nose',
+              'pep8',
+          ]
       ),)
