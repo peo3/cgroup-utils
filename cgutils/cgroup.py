@@ -381,6 +381,10 @@ def _get_subsystem(name):
     return _subsystem_name2class[name]()
 
 
+class NoSuchControlFileError(StandardError):
+    pass
+
+
 class CGroup(object):
     STATS = {
         'tasks': SimpleList,
@@ -441,25 +445,13 @@ class CGroup(object):
             self.paths[file] = os.path.join(self.fullpath, subsystem.name + '.' + file)
 
         self.configs = {}
+        self.configs.update(self.CONFIGS)
+        self.configs.update(subsystem.CONFIGS)
         self.stats = {}
-
+        self.stats.update(self.STATS)
+        self.stats.update(subsystem.STATS)
         if self.filters:
-            _configs = {}
-            _configs.update(self.CONFIGS)
-            _configs.update(subsystem.CONFIGS)
-            _stats = {}
-            _stats.update(self.STATS)
-            _stats.update(subsystem.STATS)
-            for f in self.filters:
-                if f in _configs:
-                    self.configs[f] = _configs[f]
-                elif f in _stats:
-                    self.stats[f] = _stats[f]
-        else:
-            self.configs.update(self.CONFIGS)
-            self.configs.update(subsystem.CONFIGS)
-            self.stats.update(self.STATS)
-            self.stats.update(subsystem.STATS)
+            self.apply_filters(filters)
 
         self.childs = []
         self.pids = []
@@ -475,6 +467,19 @@ class CGroup(object):
 
     def __eq__(self, obj):
         return self.fullname == obj.fullname and self.subsystem.name == obj.subsystem.name
+
+    def apply_filters(self, filters):
+        _configs = self.configs
+        _stats = self.stats
+        self.configs = {}
+        self.stats = {}
+        for f in filters:
+            if f in _configs:
+                self.configs[f] = _configs[f]
+            elif f in _stats:
+                self.stats[f] = _stats[f]
+            else:
+                raise NoSuchControlFileError("%s for %s" % (f, self.subsystem.name))
 
     def get_configs(self):
         configs = {}
