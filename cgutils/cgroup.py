@@ -378,21 +378,36 @@ class NoSuchControlFileError(StandardError):
     pass
 
 
-class CGroup(object):
-    STATS = {
+class CGroup:
+    """
+    This class represents a control group in a cgroup hierarchy.
+
+    An instance belongs to a paticluar subsystem, thus, only one
+    file path is determined to the instance.
+
+    An instance has control files of both a cgroup and a subsystem
+    which the instance belongs to. An instance can have child
+    cgroups under the cgroup directory of the instace.
+
+    The class categorises control files into three groups: configs
+    include configurable files, stats include statistics of the
+    group, and controls include special configuration files which
+    are normally write-only.
+    """
+    _STATS = {
         'tasks': SimpleList,
         'cgroup.procs': SimpleList,
     }
-    CONFIGS = {
+    _CONFIGS = {
         'release_agent': '',
         # XXX: the default value is actually inherited from a parent
         'notify_on_release': 0,
         'cgroup.clone_children': 0,
     }
-    CONTROLS = {
+    _CONTROLS = {
         'cgroup.event_control': None,
     }
-    PARSERS = {
+    _PARSERS = {
         int: lambda content: int(content),
         long: lambda content: long(content),
         str: lambda content: content.strip(),
@@ -432,16 +447,16 @@ class CGroup(object):
             self.fullname = self.path[1:]
 
         self.paths = {}
-        for file in self.STATS.keys() + self.CONFIGS.keys() + self.CONTROLS.keys():
+        for file in self._STATS.keys() + self._CONFIGS.keys() + self._CONTROLS.keys():
             self.paths[file] = os.path.join(self.fullpath, file)
         for file in subsystem.STATS.keys() + subsystem.CONFIGS.keys() + subsystem.CONTROLS.keys():
             self.paths[file] = os.path.join(self.fullpath, subsystem.name + '.' + file)
 
         self.configs = {}
-        self.configs.update(self.CONFIGS)
+        self.configs.update(self._CONFIGS)
         self.configs.update(subsystem.CONFIGS)
         self.stats = {}
-        self.stats.update(self.STATS)
+        self.stats.update(self._STATS)
         self.stats.update(subsystem.STATS)
         if self.filters:
             self.apply_filters(filters)
@@ -462,6 +477,10 @@ class CGroup(object):
         return self.fullname == obj.fullname and self.subsystem.name == obj.subsystem.name
 
     def apply_filters(self, filters):
+        """
+        It applies a specified filters. The filters are used to reduce the control groups
+        which are accessed by get_confgs, get_stats, and get_defaults methods.
+        """
         _configs = self.configs
         _stats = self.stats
         self.configs = {}
@@ -475,32 +494,51 @@ class CGroup(object):
                 raise NoSuchControlFileError("%s for %s" % (f, self.subsystem.name))
 
     def get_configs(self):
+        """
+        It returns a name and a current value pairs of control files
+        which are categorised in the configs group.
+        """
         configs = {}
         for name, default in self.configs.iteritems():
             cls = default.__class__
             path = self.paths[name]
             if os.path.exists(path):
-                configs[name] = self.PARSERS[cls](fileops.read(path))
+                configs[name] = self._PARSERS[cls](fileops.read(path))
         return configs
 
     def get_default_configs(self):
+        """
+        It is similar to get_configs but it returns default values
+        instead of current values.
+        """
         return self.configs.copy()
 
     def get_stats(self):
+        """
+        It returns a name and a value pairs of control files
+        which are categorised in the stats group.
+        """
         stats = {}
         for name, cls in self.stats.iteritems():
             path = self.paths[name]
             if os.path.exists(path):
-                stats[name] = self.PARSERS[cls](fileops.read(path))
+                stats[name] = self._PARSERS[cls](fileops.read(path))
         return stats
 
     def update(self):
+        """It updates process information of the cgroup."""
         pids = fileops.readlines(self.paths['cgroup.procs'])
         self.pids = [int(pid) for pid in pids if pid != '']
         self.n_procs = len(pids)
 
 
-class EventListener(object):
+class EventListener:
+    """
+    It enable us to use event notification feature of control groups.
+
+    To use this feature, we have to specify a cgroup
+    and a target control file of the cgroup.
+    """
     def __init__(self, cgroup, target_path):
         from cgutils import linux
         self.cgroup = cgroup
@@ -516,10 +554,19 @@ class EventListener(object):
         self.event_fd = linux.eventfd(0, 0)
 
     def set_threshold(self, threshold):
+        """
+        Set a threshold to a control file which we want to be notified events.
+        """
+        # TODO: this format depends on an implementation of each subsystem.
+        # Currently we support only memory subsystem.
         line = "%d %d %d\0" % (self.event_fd, self.target_fd, threshold)
         os.write(self.ec_fd, line)
 
     def wait(self):
+        """
+        It returns when an event which we have configured by set_threshold happens.
+        Note that it blocks until then.
+        """
         ret = os.read(self.event_fd, 64 / 8)
         return struct.unpack('Q', ret)
 
@@ -546,6 +593,11 @@ class NoSuchSubsystemError(StandardError):
 
 
 def scan_cgroups(subsys_name, filters=list()):
+    """
+    It returns a control group hierarchy which belong to the subsys_name.
+    When collecting cgroups, filters are applied to the cgroups. See pydoc
+    of apply_filters method of CGroup for more information about the filters.
+    """
     status = SubsystemStatus()
     if subsys_name not in status.get_all():
         raise NoSuchSubsystemError("No such subsystem found: " + subsys_name)
@@ -562,12 +614,19 @@ def scan_cgroups(subsys_name, filters=list()):
 
 
 def walk_cgroups(cgroup, action, opaque):
+    """
+    The function applies the action function with the opaque object
+    to each control group under the cgroup recursively.
+    """
     action(cgroup, opaque)
     for child in cgroup.childs:
         walk_cgroups(child, action, opaque)
 
 
 def get_cgroup(fullpath):
+    """
+    It returns a CGroup object which is pointed by the fullpath.
+    """
     status = SubsystemStatus()
     name = None
     for name, in status.paths.iteritems():
