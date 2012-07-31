@@ -31,6 +31,9 @@ from cgutils import command
 class Command(command.Command):
     NAME = 'event'
 
+    parser = command.Command.parser
+    parser.usage = "%%prog %s [options] <target_file> <threshold>" % NAME
+
     def _readfile(self, target_file):
         with open(target_file) as f:
             return f.read()
@@ -47,8 +50,9 @@ class Command(command.Command):
 
     def run(self, args):
         if len(args) < 2:
-            self.parser.usage = 'cgutil event [options] <target_file> <threshold>'
             self.parser.error('Less arguments: ' + ' '.join(args))
+        if len(args) > 2:
+            self.parser.error('Too many arguments: ' + ' '.join(args))
 
         if self.options.debug:
             print args

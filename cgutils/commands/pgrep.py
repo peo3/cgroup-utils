@@ -28,25 +28,27 @@ from cgutils import process
 class Command(command.Command):
     NAME = 'pgrep'
     DEFAULT_SUBSYSTEM = 'cpu'
-
     parser = command.Command.parser
     parser.add_option('-o', action='store', type='string',
                       dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
-                      help='Specify a subsystem [cpu]')
+                      help='Specify a subsystem [%default]')
     parser.add_option('-f', '--cmdline', action='store_true',
                       dest='cmdline', default=False,
-                      help='Compare with entire cmdline of process [False]')
+                      help='Compare with entire cmdline of process')
     parser.add_option('-l', '--show-name', action='store_true',
                       dest='show_name', default=False,
-                      help='Show name of process [False]')
+                      help='Show name of process')
     parser.add_option('-i', '--ignore-case', action='store_true',
                       dest='ignore_case', default=False,
-                      help='Ignore case [False]')
+                      help='Ignore case')
+    parser.usage = "%%prog %s [options] <proc_name>" % NAME
 
     def run(self, args):
         if len(args) < 1:
-            self.parser.usage = 'cgutil pgrep [options] <proc_name>'
-            self.parser.error('Less arguments: ' + ' '.join(args))
+            self.parser.error('Less argument')
+
+        if len(args) > 1:
+            self.parser.error('Too many arguments: ' + ' '.join(args))
 
         procname = args[0]
         root_cgroup = cgroup.scan_cgroups(self.options.target_subsystem)

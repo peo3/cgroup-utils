@@ -29,16 +29,17 @@ class Command(command.Command):
     parser = command.Command.parser
     parser.add_option('-o', action='store', type='string',
                       dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
-                      help='Specify a subsystem [cpu]')
+                      help='Specify a subsystem [%default]')
     parser.add_option('-e', '--hide-empty', action='store_true',
                       dest='hide_empty', default=False,
-                      help='Hide empty groups [False]')
+                      help='Hide empty groups')
     parser.add_option('-z', '--show-zero', action='store_true',
                       dest='show_zero', default=False,
-                      help='Show zero values [False]')
+                      help='Show zero values')
     parser.add_option('-j', '--json', action='store_true',
                       dest='json', default=False,
-                      help='Dump as JSON [False]')
+                      help='Dump as JSON')
+    parser.usage = "%%prog %s [options]" % NAME
 
     _INDENT = ' ' * 4
 

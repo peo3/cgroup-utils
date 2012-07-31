@@ -49,13 +49,18 @@ test_support()
 buildpath=$(find ./build/lib.linux* -maxdepth 0 -type d)
 export PYTHONPATH=$buildpath:.
 
-echo "## Testing each subcommands for each subsystems"
+echo "## Testing each commands for each subsystems"
 for subsys in $enabled_cgroups; do
     test_run python bin/cgutil tree -o $subsys
     test_run python bin/cgutil configs -o $subsys
     test_run python bin/cgutil stats -o $subsys
 done
 test_run python bin/cgutil top -b -n 1
+
+echo "## Testing each command helps"
+for cmd in configs event pgrep stats top tree; do
+    test_run python bin/cgutil $cmd --help
+done
 
 echo "## Checking unsupported files of subsystems"
 for subsys in $enabled_cgroups; do

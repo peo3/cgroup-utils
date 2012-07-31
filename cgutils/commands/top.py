@@ -492,28 +492,29 @@ class Command(command.Command):
     parser = command.Command.parser
     parser.add_option('-i', '--show-inactive', action='store_true',
                       dest='show_inactive', default=False,
-                      help='Show inactive groups [False]')
+                      help='Show inactive groups')
     parser.add_option('-z', '--show-zero', action='store_true',
                       dest='show_zero', default=False,
-                      help='Show zero numbers [False]')
+                      help='Show zero numbers')
     parser.add_option('-e', '--show-empty', action='store_true',
                       dest='show_empty', default=False,
-                      help='Hide empty groups [False]')
+                      help='Hide empty groups')
     parser.add_option('-r', '--hide-root', action='store_true',
                       dest='hide_root', default=False,
-                      help='Hide the root group [False]')
+                      help='Hide the root group')
     parser.add_option('-b', '--batch', action='store_true', dest='batch',
                       help='non-interactive mode')
     parser.add_option('-n', '--iter', type='int', dest='iterations',
                       metavar='NUM',
                       help='Number of iterations before ending [infinite]')
     parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
-                      help='Delay between iterations [3 seconds]',
+                      help='Delay between iterations [%default seconds]',
                       metavar='SEC', default=3)
     parser.add_option('-u', '--update-cgroups-interval', type='float',
                       dest='update_cgroups_interval',
-                      help='Update cgroups in every this interval [10 seconds]',
+                      help='Update cgroups in every this interval [%default seconds]',
                       metavar='SEC', default=10)
+    parser.usage = "%%prog %s [options]" % NAME
 
     def _run_window(self, win):
         cgstats = CGTopStats(self.options)

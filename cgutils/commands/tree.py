@@ -94,6 +94,7 @@ class Command(command.Command):
     parser.add_option('-a', '--show-autogroup', action='store_true',
                       dest='show_autogroup', default=False,
                       help='Show groups by autogroup feature [False]')
+    parser.usage = "%%prog %s [options]" % NAME
 
     _INDENT_SIZE = 4
 
