@@ -629,7 +629,7 @@ def get_cgroup(fullpath):
     """
     status = SubsystemStatus()
     name = None
-    for name, in status.paths.iteritems():
+    for name in status.paths.keys():
         if name in fullpath:
             break
     else:
