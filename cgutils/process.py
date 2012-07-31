@@ -20,17 +20,14 @@ from __future__ import with_statement
 import os
 import os.path
 
-
-def readfile(filepath):
-    with open(filepath) as f:
-        return f.read()
+import fileops
 
 
 class Process(object):
     def __init__(self, pid):
         self.pid = pid
 
-        items = readfile('/proc/%d/stat' % pid).split(' ')
+        items = fileops.read('/proc/%d/stat' % pid).split(' ')
         self.name = items[1].lstrip('(').rstrip(')')
         self.state = items[2]
         self.ppid = int(items[3])
@@ -38,13 +35,13 @@ class Process(object):
         self.sid = int(items[5])
         if not self.is_kthread():
             self.name = self._get_fullname()
-            cmdline = readfile('/proc/%d/cmdline' % self.pid)
+            cmdline = fileops.read('/proc/%d/cmdline' % self.pid)
             self.cmdline = cmdline.rstrip('\0').replace('\0', ' ')
         else:
             self.cmdline = self.name
 
         if os.path.exists('/proc/%d/autogroup' % pid):
-            autogroup = readfile('/proc/%d/autogroup' % pid)
+            autogroup = fileops.read('/proc/%d/autogroup' % pid)
         else:
             autogroup = None
         if autogroup:
@@ -55,7 +52,7 @@ class Process(object):
             self.autogroup = None
 
     def _get_fullname(self):
-        cmdline = readfile('/proc/%d/cmdline' % self.pid)
+        cmdline = fileops.read('/proc/%d/cmdline' % self.pid)
         if '\0' in cmdline:
             args = cmdline.rstrip('\0').split('\0')
             if ' ' in args[0]:

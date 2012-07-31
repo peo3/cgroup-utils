@@ -16,18 +16,13 @@
 #
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
 
-from __future__ import with_statement
 import os
 import os.path
 import re
 import struct
 
 from cgutils import host
-
-
-def readfile(filepath):
-    with open(filepath) as f:
-        return f.read()
+import fileops
 
 
 class SubsystemStatus(dict):
@@ -53,8 +48,7 @@ class SubsystemStatus(dict):
         freezer	0	1	1
         net_cls	0	1	1
         """
-        lines = readfile('/proc/cgroups').split('\n')
-        for line in lines:
+        for line in fileops.readlines('/proc/cgroups'):
             m = self._RE_CGROUPS.match(line)
             if m is None:
                 continue
@@ -83,8 +77,7 @@ class SubsystemStatus(dict):
         cgroup /cgroup/freezer cgroup rw,relatime,freezer 0 0
         """
 
-        lines = readfile('/proc/mounts').split('\n')
-        for line in lines:
+        for line in fileops.readlines('/proc/mounts'):
             if 'cgroup' not in line:
                 continue
 
@@ -234,8 +227,8 @@ class SubsystemCpu(Subsystem):
     CONFIGS = {
         'shares':        1024,
         # Are the default values correct?
-        'rt_period_us':  long(readfile(_path_rt_period)),
-        'rt_runtime_us': long(readfile(_path_rt_runtime)),
+        'rt_period_us':  long(fileops.read(_path_rt_period)),
+        'rt_runtime_us': long(fileops.read(_path_rt_runtime)),
         'cfs_period_us': 100000,
         'cfs_quota_us': -1,
     }
@@ -487,7 +480,7 @@ class CGroup(object):
             cls = default.__class__
             path = self.paths[name]
             if os.path.exists(path):
-                configs[name] = self.PARSERS[cls](readfile(path))
+                configs[name] = self.PARSERS[cls](fileops.read(path))
         return configs
 
     def get_default_configs(self):
@@ -498,11 +491,11 @@ class CGroup(object):
         for name, cls in self.stats.iteritems():
             path = self.paths[name]
             if os.path.exists(path):
-                stats[name] = self.PARSERS[cls](readfile(path))
+                stats[name] = self.PARSERS[cls](fileops.read(path))
         return stats
 
     def update(self):
-        pids = readfile(self.paths['cgroup.procs']).rstrip('\n').split('\n')
+        pids = fileops.readlines(self.paths['cgroup.procs'])
         self.pids = [int(pid) for pid in pids if pid != '']
         self.n_procs = len(pids)
 

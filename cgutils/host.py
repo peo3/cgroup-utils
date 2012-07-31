@@ -21,6 +21,8 @@ import os
 import os.path
 import re
 
+import fileops
+
 
 try:
     import multiprocessing
@@ -28,21 +30,16 @@ except ImportError:
     # For python 2.5 or older
     class Multiprocessing:
         def cpu_count(self):
-            return readfile('/proc/cpuinfo').count('processor')
+            return fileops.read('/proc/cpuinfo').count('processor')
     multiprocessing = Multiprocessing()
-
-
-def readfile(filepath):
-    with open(filepath) as f:
-        return f.read()
 
 
 class CPUInfo():
     def get_online(self):
-        return readfile("/sys/devices/system/cpu/online").strip()
+        return fileops.read("/sys/devices/system/cpu/online").strip()
 
     def get_total_usage(self):
-        line = readfile('/proc/stat').split('\n')[0]
+        line = fileops.readlines('/proc/stat')[0]
         line = line[5:]  # get rid of 'cpu  '
         usages = [int(x) for x in line.split(' ')]
         return sum(usages) / multiprocessing.cpu_count()
@@ -53,12 +50,12 @@ class MemInfo(dict):
         if not os.path.exists('/sys/devices/system/node/'):
             return '0'
         else:
-            return readfile('/sys/devices/system/node/online').strip()
+            return fileops.read('/sys/devices/system/node/online').strip()
 
     _p = re.compile('^(?P<key>[\w\(\)]+):\s+(?P<val>\d+)')
 
     def _update(self):
-        for line in readfile('/proc/meminfo').split('\n'):
+        for line in fileops.readlines('/proc/meminfo'):
             m = self._p.search(line)
             if m:
                 self[m.group('key')] = int(m.group('val')) * 1024

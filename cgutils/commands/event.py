@@ -26,6 +26,7 @@ import os.path
 
 from cgutils import cgroup
 from cgutils import command
+from cgutils import fileops
 
 
 class Command(command.Command):
@@ -33,10 +34,6 @@ class Command(command.Command):
 
     parser = command.Command.parser
     parser.usage = "%%prog %s [options] <target_file> <threshold>" % NAME
-
-    def _readfile(self, target_file):
-        with open(target_file) as f:
-            return f.read()
 
     def _parse_value(self, val):
         if val[-1] == 'K':
@@ -67,7 +64,7 @@ class Command(command.Command):
         cg = cgroup.get_cgroup(os.path.dirname(target_file))
         listener = cgroup.EventListener(cg, target_file)
 
-        cur = long(self._readfile(target_file))
+        cur = long(fileops.read(target_file))
         if self.options.debug:
             print "Before: %d (%d MB)" % (cur, cur / 1024 / 1024)
 
@@ -92,5 +89,5 @@ class Command(command.Command):
             print('The cgroup seems to have beeen removed.')
             sys.exit(1)
         if self.options.debug:
-            cur = long(self._readfile(target_file))
+            cur = long(fileops.read(target_file))
             print "After: %d (%d MB)" % (cur, cur / 1024 / 1024)

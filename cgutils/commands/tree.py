@@ -24,11 +24,6 @@ from cgutils import command
 from cgutils import process
 
 
-def readfile(filepath):
-    with open(filepath) as f:
-        return f.read()
-
-
 DECORATER = {
     'red': lambda s: '\033[31m' + s + '\033[0m',
     'green': lambda s: '\033[32m' + s + '\033[0m',
