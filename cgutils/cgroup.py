@@ -539,12 +539,12 @@ class EventListener:
     To use this feature, we have to specify a cgroup
     and a target control file of the cgroup.
     """
-    def __init__(self, cgroup, target_path):
+    def __init__(self, cgroup, target_name):
         from cgutils import linux
         self.cgroup = cgroup
 
         # To keep the files open
-        self.target_file = open(target_path)
+        self.target_file = open(os.path.join(cgroup.fullpath, target_name))
         self.target_fd = self.target_file.fileno()
 
         ec_path = self.cgroup.paths['cgroup.event_control']

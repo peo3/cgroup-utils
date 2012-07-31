@@ -62,7 +62,7 @@ class Command(command.Command):
             sys.exit(1)
 
         cg = cgroup.get_cgroup(os.path.dirname(target_file))
-        listener = cgroup.EventListener(cg, target_file)
+        listener = cgroup.EventListener(cg, os.path.basename(target_file))
 
         cur = long(fileops.read(target_file))
         if self.options.debug:
