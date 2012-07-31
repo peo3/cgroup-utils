@@ -77,7 +77,7 @@ class Command(command.Command):
         else:
             threshold = self._parse_value(threshold)
 
-        listener.set_threshold(threshold)
+        listener.register([threshold])
 
         if self.options.debug:
             print "Threshold: %d (%d MB)" % (threshold, threshold / 1024 / 1024)

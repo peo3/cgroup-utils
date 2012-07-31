@@ -539,12 +539,26 @@ class EventListener:
     To use this feature, we have to specify a cgroup
     and a target control file of the cgroup.
     """
-    def __init__(self, cgroup, target_name):
-        from cgutils import linux
-        self.cgroup = cgroup
+    _SUPPORTED_FILES = [
+        'memory.usage_in_bytes',
+        'memory.oom_control',
+        'memory.memsw.usage_in_bytes',
+    ]
 
-        # To keep the files open
-        self.target_file = open(os.path.join(cgroup.fullpath, target_name))
+    def __init__(self, cgroup, target_name):
+        import errno
+        from cgutils import linux
+
+        self.cgroup = cgroup
+        self.target_name = target_name
+
+        if target_name not in self._SUPPORTED_FILES:
+            raise EnvironmentError("%s is not supported by the kernel" % target_name)
+
+        target_path = os.path.join(cgroup.fullpath, target_name)
+
+        # To keep the files open, set them in instance variables
+        self.target_file = open(target_path)
         self.target_fd = self.target_file.fileno()
 
         ec_path = self.cgroup.paths['cgroup.event_control']
@@ -553,13 +567,17 @@ class EventListener:
 
         self.event_fd = linux.eventfd(0, 0)
 
-    def set_threshold(self, threshold):
+    def register(self, arguments=list()):
         """
-        Set a threshold to a control file which we want to be notified events.
+        Register a target file with arguments (if required) to a event_control file
+        which we want to be notified events.
         """
-        # TODO: this format depends on an implementation of each subsystem.
-        # Currently we support only memory subsystem.
-        line = "%d %d %d\0" % (self.event_fd, self.target_fd, threshold)
+        target_name = self.target_name
+        if target_name in ['memory.usage_in_bytes', 'memory.memsw.usage_in_bytes']:
+            threshold = arguments[0]
+            line = "%d %d %d\0" % (self.event_fd, self.target_fd, long(threshold))
+        else:
+            line = "%d %d\0" % (self.event_fd, self.target_fd)
         os.write(self.ec_fd, line)
 
     def wait(self):
