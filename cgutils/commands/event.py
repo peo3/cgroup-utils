@@ -27,13 +27,14 @@ import os.path
 from cgutils import cgroup
 from cgutils import command
 from cgutils import fileops
+from cgutils import formatter
 
 
 class Command(command.Command):
     NAME = 'event'
 
     parser = command.Command.parser
-    parser.usage = "%%prog %s [options] <target_file> <threshold>" % NAME
+    parser.usage = "%%prog %s [options] <target_file> [<argument>...]" % NAME
 
     def _parse_value(self, val):
         if val[-1] == 'K':
@@ -45,49 +46,75 @@ class Command(command.Command):
         else:
             return long(val)
 
+    def _show_memory_usage(self, title, _cgroup):
+        stats = _cgroup.get_stats()
+        usage = stats['usage_in_bytes']
+        print "%s: %d (%s)" % (title, usage, formatter.byte(usage))
+        if 'memsw.usage_in_bytes' in stats:
+            usage = stats['memsw.usage_in_bytes']
+            print "%s(memsw): %d (%s)" % (title, usage, formatter(usage))
+
     def run(self, args):
-        if len(args) < 2:
+        if len(args) == 0:
             self.parser.error('Less arguments: ' + ' '.join(args))
-        if len(args) > 2:
-            self.parser.error('Too many arguments: ' + ' '.join(args))
 
         if self.options.debug:
             print args
 
         target_file = args[0]
-        threshold = args[1]
 
         if not os.path.exists(target_file):
             print "File not found: %s" % target_file
             sys.exit(1)
 
-        cg = cgroup.get_cgroup(os.path.dirname(target_file))
-        listener = cgroup.EventListener(cg, os.path.basename(target_file))
+        target_name = os.path.basename(target_file)
 
-        cur = long(fileops.read(target_file))
-        if self.options.debug:
-            print "Before: %d (%d MB)" % (cur, cur / 1024 / 1024)
+        arguments = []
+        if target_name in ['memory.usage_in_bytes', 'memory.memsw.usage_in_bytes']:
+            if len(args) > 2:
+                self.parser.error('Too many arguments: ' + ' '.join(args))
+            threshold = args[1]
 
-        if threshold[0] == '+':
-            threshold = threshold.replace('+', '')
-            threshold = cur + self._parse_value(threshold)
-        elif threshold[0] == '-':
-            threshold = threshold.replace('-', '')
-            threshold = cur - self._parse_value(threshold)
+            if threshold[0] == '+':
+                cur = long(fileops.read(target_file))
+                threshold = threshold.replace('+', '')
+                threshold = cur + self._parse_value(threshold)
+            elif threshold[0] == '-':
+                cur = long(fileops.read(target_file))
+                threshold = threshold.replace('-', '')
+                threshold = cur - self._parse_value(threshold)
+            else:
+                threshold = self._parse_value(threshold)
+
+            if self.options.verbose:
+                print "Threshold: %d (%s)" % (threshold, formatter.byte(threshold))
+
+            arguments.append(threshold)
+
+        elif target_name == 'memory.oom_control':
+            if len(args) != 1:
+                self.parser.error('Too many arguments: ' + ' '.join(args))
+
         else:
-            threshold = self._parse_value(threshold)
+            files = ', '.join(cgroup.EventListener.SUPPORTED_FILES)
+            message = "Target file not supported: %s\n" % target_name
+            message += "(Supported files: %s)" % files
+            self.parser.error(message)
 
-        listener.register([threshold])
+        cg = cgroup.get_cgroup(os.path.dirname(target_file))
+        listener = cgroup.EventListener(cg, target_name)
 
-        if self.options.debug:
-            print "Threshold: %d (%d MB)" % (threshold, threshold / 1024 / 1024)
+        if self.options.verbose:
+            self._show_memory_usage('Before', cg)
+
+        listener.register(arguments)
 
         #ret = listener.wait()
         listener.wait()
 
         if not os.path.exists(cg.fullpath):
-            print('The cgroup seems to have beeen removed.')
+            print('The cgroup seems to have been removed.')
             sys.exit(1)
-        if self.options.debug:
-            cur = long(fileops.read(target_file))
-            print "After: %d (%d MB)" % (cur, cur / 1024 / 1024)
+
+        if self.options.verbose:
+            self._show_memory_usage('After', cg)

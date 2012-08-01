@@ -539,7 +539,7 @@ class EventListener:
     To use this feature, we have to specify a cgroup
     and a target control file of the cgroup.
     """
-    _SUPPORTED_FILES = [
+    SUPPORTED_FILES = [
         'memory.usage_in_bytes',
         'memory.oom_control',
         'memory.memsw.usage_in_bytes',
@@ -552,7 +552,7 @@ class EventListener:
         self.cgroup = cgroup
         self.target_name = target_name
 
-        if target_name not in self._SUPPORTED_FILES:
+        if target_name not in self.SUPPORTED_FILES:
             raise EnvironmentError("%s is not supported by the kernel" % target_name)
 
         target_path = os.path.join(cgroup.fullpath, target_name)

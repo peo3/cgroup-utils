@@ -26,6 +26,8 @@ class Command():
     parser = optparse.OptionParser(version="%s %s" % (NAME, VERSION))
     parser.add_option('--debug', action='store_true', dest='debug',
                       default=False, help='Show debug messages')
+    parser.add_option('-v', '--verbose', action='store_true', dest='verbose',
+                      default=False, help='Output extra messages')
     parser.usage = "%%prog %s [options]" % NAME
 
     def __init__(self, options):
