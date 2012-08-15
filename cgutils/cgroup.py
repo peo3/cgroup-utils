@@ -20,6 +20,7 @@ import os
 import os.path
 import re
 import struct
+import errno
 
 from cgutils import host
 import fileops
@@ -503,7 +504,16 @@ class CGroup:
             cls = default.__class__
             path = self.paths[name]
             if os.path.exists(path):
-                configs[name] = self._PARSERS[cls](fileops.read(path))
+                try:
+                    configs[name] = self._PARSERS[cls](fileops.read(path))
+                except IOError, e:
+                    if e.errno == errno.EOPNOTSUPP:
+                        # Since 3.5 memory.memsw.* are always created even if disabled.
+                        # If disabled we will get EOPNOTSUPP when read or write them.
+                        # See commit af36f906c0f4c2ffa0482ecdf856a33dc88ae8c5 of the kernel.
+                        pass
+                    else:
+                        raise
         return configs
 
     def get_default_configs(self):
@@ -522,7 +532,16 @@ class CGroup:
         for name, cls in self.stats.iteritems():
             path = self.paths[name]
             if os.path.exists(path):
-                stats[name] = self._PARSERS[cls](fileops.read(path))
+                try:
+                    stats[name] = self._PARSERS[cls](fileops.read(path))
+                except IOError, e:
+                    if e.errno == errno.EOPNOTSUPP:
+                        # Since 3.5 memory.memsw.* are always created even if disabled.
+                        # If disabled we will get EOPNOTSUPP when read or write them.
+                        # See commit af36f906c0f4c2ffa0482ecdf856a33dc88ae8c5 of the kernel.
+                        pass
+                    else:
+                        raise
         return stats
 
     def update(self):
@@ -546,7 +565,6 @@ class EventListener:
     ]
 
     def __init__(self, cgroup, target_name):
-        import errno
         from cgutils import linux
 
         self.cgroup = cgroup
