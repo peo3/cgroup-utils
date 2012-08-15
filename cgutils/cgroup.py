@@ -214,6 +214,9 @@ class Subsystem(object):
     def __init__(self):
         self.name = self.NAME
 
+    def get_init_parameters(self, parent_configs):
+        return {}
+
 
 #
 # Classes of each subsystem
@@ -264,6 +267,12 @@ class SubsystemCpuset(Subsystem):
         'sched_load_balance': 1,
         'sched_relax_domain_level': -1,
     }
+
+    def get_init_parameters(self, parent_configs):
+        params = {}
+        params['cpus'] = parent_configs['cpus']
+        params['mems'] = parent_configs['mems']
+        return params
 
 
 class SubsystemMemory(Subsystem):
@@ -549,6 +558,16 @@ class CGroup:
         pids = fileops.readlines(self.paths['cgroup.procs'])
         self.pids = [int(pid) for pid in pids if pid != '']
         self.n_procs = len(pids)
+
+    def mkdir(self, name, set_initparams=True):
+        new_path = os.path.join(self.fullpath, name)
+        fileops.mkdir(new_path)
+        new = get_cgroup(new_path)
+        if set_initparams:
+            params = self.subsystem.get_init_parameters(self.parent.get_configs())
+            for filename, value in params.iteritems():
+                new.set_config(filename, value)
+        return new
 
 
 class EventListener:

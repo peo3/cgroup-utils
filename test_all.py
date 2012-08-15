@@ -99,8 +99,8 @@ def test_subsystem(cmd, cmdline, _options, subsys=None):
     return allok
 
 commands = cgutils.commands.__all__
-# FIXME: there is no way to test automatically event command ;-/
-commands = [c for c in commands if c != 'event']
+# FIXME: there is no way to test automatically these commands ;-/
+commands = [c for c in commands if c not in ['event', 'mkdir']]
 
 status = cgroup.SubsystemStatus()
 subsystems = status.get_enabled()
