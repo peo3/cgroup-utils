@@ -23,6 +23,7 @@ import struct
 import errno
 
 from cgutils import host
+from cgutils import process
 import fileops
 
 
@@ -388,6 +389,10 @@ class NoSuchControlFileError(StandardError):
     pass
 
 
+class IsRootGroupError(StandardError):
+    pass
+
+
 class CGroup:
     """
     This class represents a control group in a cgroup hierarchy.
@@ -573,6 +578,28 @@ class CGroup:
             for filename, value in params.iteritems():
                 new.set_config(filename, value)
         return new
+
+    def rmdir(self, target=None):
+        if self.depth == 0:
+            raise IsRootGroupError("%s is a root cgroup" % self.fullpath)
+
+        if target:
+            if not isinstance(target, CGroup):
+                raise TypeError('Not a CGroup instance')
+        else:
+            target = self.parent
+
+        self.update()
+
+        for pid in self.pids:
+            target.attach(pid)
+        fileops.rmdir(self.fullpath)
+
+    def attach(self, pid):
+        if not process.exists(pid):
+            raise EnvironmentError("Process %d not exists" % pid)
+
+        fileops.write(self.paths['tasks'], str(pid))
 
 
 class EventListener:

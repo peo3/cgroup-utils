@@ -30,5 +30,14 @@ def readlines(path):
         return [c.rstrip('\n') for c in f.readlines()]
 
 
+def write(path, cont):
+    with open(path, 'w') as f:
+        return f.write(cont)
+
+
 def mkdir(path, mode=0777):
     os.mkdir(path, mode)
+
+
+def rmdir(path):
+    os.rmdir(path)

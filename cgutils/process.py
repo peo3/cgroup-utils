@@ -84,3 +84,7 @@ class Process(object):
 
     def is_running(self):
         return self.state == 'R'
+
+
+def exists(pid):
+    return os.path.exists("/proc/%d" % pid)

@@ -100,7 +100,7 @@ def test_subsystem(cmd, cmdline, _options, subsys=None):
 
 commands = cgutils.commands.__all__
 # FIXME: there is no way to test automatically these commands ;-/
-commands = [c for c in commands if c not in ['event', 'mkdir']]
+commands = [c for c in commands if c not in ['event', 'mkdir', 'rmdir']]
 
 status = cgroup.SubsystemStatus()
 subsystems = status.get_enabled()

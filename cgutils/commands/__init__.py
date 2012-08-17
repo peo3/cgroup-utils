@@ -3,6 +3,7 @@ __all__ = [
     'event',
     'mkdir',
     'pgrep',
+    'rmdir',
     'stats',
     'top',
     'tree',
