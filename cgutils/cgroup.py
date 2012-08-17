@@ -684,8 +684,8 @@ def get_cgroup(fullpath):
     """
     status = SubsystemStatus()
     name = None
-    for name in status.paths.keys():
-        if name in fullpath:
+    for name, path in status.paths.iteritems():
+        if path in fullpath:
             break
     else:
         raise StandardError('Invalid path: ' + fullpath)
