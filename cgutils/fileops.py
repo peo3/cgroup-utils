@@ -17,6 +17,7 @@
 # Copyright (c) 2012 peo3 <peo314159265@gmail.com>
 
 from __future__ import with_statement
+import os
 
 
 def read(path):
@@ -27,3 +28,7 @@ def read(path):
 def readlines(path):
     with open(path) as f:
         return [c.rstrip('\n') for c in f.readlines()]
+
+
+def mkdir(path, mode=0777):
+    os.mkdir(path, mode)

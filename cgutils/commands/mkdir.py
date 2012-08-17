@@ -16,6 +16,8 @@
 #
 # Copyright (c) 2012 peo3 <peo314159265@gmail.com>
 
+import os
+
 from cgutils import cgroup
 from cgutils import command
 from cgutils import formatter

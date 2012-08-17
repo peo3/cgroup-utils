@@ -438,9 +438,10 @@ class CGroup:
                 return rec(rest) + 1
         return rec(path)
 
-    def __init__(self, subsystem, fullpath, filters=list()):
+    def __init__(self, subsystem, fullpath, parent=None, filters=list()):
         self.subsystem = subsystem
         self.fullpath = fullpath
+        self.parent = parent
         self.filters = filters
 
         status = SubsystemStatus()
@@ -455,6 +456,10 @@ class CGroup:
             self.depth = self._calc_depth(self.path)
             self.name = os.path.basename(self.path)
             self.fullname = self.path[1:]
+
+        if self.parent is None and self.depth != 0:
+            # XXX: We should do out of the class?
+            self.parent = get_cgroup(os.path.dirname(self.fullpath))
 
         self.paths = {}
         for file in self._STATS.keys() + self._CONFIGS.keys() + self._CONTROLS.keys():
