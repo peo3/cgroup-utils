@@ -682,6 +682,9 @@ def get_cgroup(fullpath):
     """
     It returns a CGroup object which is pointed by the fullpath.
     """
+    # Canonicalize symbolic links
+    fullpath = os.path.realpath(fullpath)
+
     status = SubsystemStatus()
     name = None
     for name, path in status.paths.iteritems():
