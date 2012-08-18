@@ -14,7 +14,7 @@ done < /proc/cgroups
 
 named_cgroup=$(grep cgroup /proc/mounts | egrep -o -e 'name=[^,\ ]*')
 if [ -n "$named_cgroup" ]; then
-	enabled_cgroups="$enabled_cgroups $named_cgroup"
+    enabled_cgroups="$enabled_cgroups $named_cgroup"
 fi
 
 test_run()
@@ -31,6 +31,18 @@ test_run()
         fi
     else
         echo "[ok] $*"
+    fi
+}
+
+test_run_event()
+{
+    $* >/dev/null 2>$ERRFILE
+    ret=$?
+    if [ $? = 2 ]; then
+        echo "[ok] $*"
+    else
+        echo "[NG] $*"
+        cat $ERRFILE
     fi
 }
 
@@ -56,6 +68,11 @@ for subsys in $enabled_cgroups; do
     test_run python bin/cgutil stats -o $subsys
 done
 test_run python bin/cgutil top -b -n 1
+root=$(awk '/^cgroup.*memory/ {print $2;}' /proc/mounts)
+path=$root/memory.usage_in_bytes
+test_run python bin/cgutil event -t 0.1 $path +1M
+path=$root/memory.oom_control
+test_run python bin/cgutil event -t 0.1 $path
 
 echo "## Testing each command helps"
 for cmd in configs event pgrep stats top tree; do
