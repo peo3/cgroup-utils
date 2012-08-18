@@ -76,6 +76,10 @@ class Command(command.Command):
 
         arguments = []
         if target_name in ['memory.usage_in_bytes', 'memory.memsw.usage_in_bytes']:
+            self.parser.usage = "%%prog %s [options] <target_file> <threshold>" % self.NAME
+            if len(args) < 2:
+                self.parser.error('Less arguments: ' + ' '.join(args))
+
             if len(args) > 2:
                 self.parser.error('Too many arguments: ' + ' '.join(args))
             threshold = args[1]
@@ -97,6 +101,7 @@ class Command(command.Command):
             arguments.append(threshold)
 
         elif target_name == 'memory.oom_control':
+            self.parser.usage = "%%prog %s [options] <target_file>" % self.NAME
             if len(args) != 1:
                 self.parser.error('Too many arguments: ' + ' '.join(args))
 
