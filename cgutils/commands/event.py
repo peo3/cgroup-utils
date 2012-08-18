@@ -23,6 +23,8 @@ from __future__ import with_statement
 import sys
 import os
 import os.path
+import time
+import signal
 
 from cgutils import cgroup
 from cgutils import command
@@ -34,6 +36,9 @@ class Command(command.Command):
     NAME = 'event'
 
     parser = command.Command.parser
+    parser.add_option('-t', '--timeout', type='float', dest='timeout_seconds',
+                      help='Timeout in SEC [%default seconds]',
+                      metavar='SEC', default=0.0)
     parser.usage = "%%prog %s [options] <target_file> [<argument>...]" % NAME
 
     def _parse_value(self, val):
@@ -102,15 +107,34 @@ class Command(command.Command):
             self.parser.error(message)
 
         cg = cgroup.get_cgroup(os.path.dirname(target_file))
-        listener = cgroup.EventListener(cg, target_name)
 
         if self.options.verbose:
             self._show_memory_usage('Before', cg)
 
-        listener.register(arguments)
+        pid = os.fork()
+        if pid == 0:
+            listener = cgroup.EventListener(cg, target_name)
+            listener.register(arguments)
 
-        #ret = listener.wait()
-        listener.wait()
+            #ret = listener.wait()
+            listener.wait()
+            os._exit(0)
+
+        timed_out = False
+        if self.options.timeout_seconds:
+            remained = self.options.timeout_seconds
+            while remained > 0:
+                ret = os.waitpid(pid, os.WNOHANG)
+
+                if ret != (0, 0):
+                    break
+                time.sleep(0.1)
+                remained -= 0.1
+            else:
+                timed_out = True
+                os.kill(pid, signal.SIGTERM)
+        else:
+            os.waitpid(pid, 0)
 
         if not os.path.exists(cg.fullpath):
             print('The cgroup seems to have been removed.')
@@ -118,3 +142,10 @@ class Command(command.Command):
 
         if self.options.verbose:
             self._show_memory_usage('After', cg)
+
+        if timed_out:
+            if self.options.verbose:
+                print('Timed out')
+            sys.exit(2)
+        else:
+            sys.exit(0)
