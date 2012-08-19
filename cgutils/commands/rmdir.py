@@ -42,18 +42,52 @@ class Command(command.Command):
 
         target_dir = args[0]
 
-        if not os.path.exists(target_dir):
-            print("Error: %s not found" % target_dir)
-            sys.exit(1)
+        if not self.options.apply_all:
+            if not os.path.exists(target_dir):
+                print("Error: %s not found" % target_dir)
+                sys.exit(1)
 
-        if not os.path.isdir(target_dir):
-            print("Error: %s is not a directory" % target_dir)
-            sys.exit(1)
+            if not os.path.isdir(target_dir):
+                print("Error: %s is not a directory" % target_dir)
+                sys.exit(1)
 
-        cg = cgroup.get_cgroup(target_dir)
+            cg = cgroup.get_cgroup(target_dir)
 
-        if cg.depth == 0:
-            print("Error: %s is a root cgroup" % target_dir)
-            sys.exit(1)
+            if cg.depth == 0:
+                print("Error: %s is a root cgroup" % target_dir)
+                sys.exit(1)
 
-        cg.rmdir()
+            cg.rmdir()
+        else:
+            target = cgroup.get_cgroup(target_dir)
+
+            status = cgroup.SubsystemStatus()
+            enabled = status.get_enabled()
+            enabled = [s for s in enabled if not (s == 'perf_event' or s == 'debug')]
+
+            targets = []
+            for name in enabled:
+                mount_point = status.get_path(name)
+                path = os.path.join(mount_point, target.fullname.lstrip('/'))
+                targets.append(cgroup.get_cgroup(path))
+
+            # Check directory existence first
+            for _target in targets:
+                if self.options.debug:
+                    print(_target.fullpath)
+                if not os.path.exists(_target.fullpath):
+                    print("Error: %s not found" % _target.fullpath)
+                    sys.exit(1)
+                if not os.path.isdir(_target.fullpath):
+                    print("Error: %s is not a directory" % _target.fullpath)
+                    sys.exit(1)
+
+            for _target in targets:
+                if self.options.debug:
+                    print("rmdir %s" % _target.fullpath)
+                if not os.path.exists(_target.fullpath):
+                    # XXX: this may happen when systemd creates
+                    # a cpuacct,cpu group and links cpu and cpuacct
+                    # to it.
+                    continue
+                _target.rmdir()
