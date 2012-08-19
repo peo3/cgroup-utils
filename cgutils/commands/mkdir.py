@@ -45,11 +45,52 @@ class Command(command.Command):
 
         target_dir = args[0]
 
-        cgpath = os.path.dirname(target_dir)
+        parent_path = os.path.dirname(target_dir)
         new = os.path.basename(target_dir)
-        if self.options.parents and not os.path.exists(cgpath):
-            self.parser.error('%s not found' % cgpath)
+        if self.options.parents and not os.path.exists(parent_path):
+            self.parser.error('%s not found' % parent_path)
 
-        cg = cgroup.get_cgroup(cgpath)
+        parent = cgroup.get_cgroup(parent_path)
 
-        cg.mkdir(new)
+        if not self.options.apply_all:
+            parent.mkdir(new)
+        else:
+            status = cgroup.SubsystemStatus()
+            enabled = status.get_enabled()
+            enabled = [s for s in enabled if not (s == 'perf_event' or s == 'debug')]
+
+            parents = []
+            for name in enabled:
+                mount_point = status.get_path(name)
+                path = os.path.join(mount_point, parent.fullname.lstrip('/'))
+                parents.append(cgroup.get_cgroup(path))
+
+            # Check directory existence first
+            to_be_created = []
+            for _parent in parents:
+                new_path = os.path.join(_parent.fullpath, new)
+                if self.options.debug:
+                    print(new_path)
+                if os.path.exists(new_path):
+                    if not self.options.parents:
+                        print("%s exists" % new_path)
+                        sys.exit(1)
+                    else:
+                        to_be_created.append(_parent)
+                else:
+                    to_be_created.append(_parent)
+
+            if self.options.debug:
+                print(to_be_created)
+
+            for _parent in to_be_created:
+                if self.options.debug:
+                    new_path = os.path.join(_parent.fullpath, new)
+                    print("mkdir %s" % new_path)
+                new_path = os.path.join(_parent.fullpath, new)
+                if os.path.exists(new_path):
+                    # XXX: this may happen when systemd creates
+                    # a cpuacct,cpu group and links cpu and cpuacct
+                    # to it.
+                    continue
+                _parent.mkdir(new)
