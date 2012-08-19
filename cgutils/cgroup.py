@@ -456,7 +456,7 @@ class CGroup:
 
         if self.path == '/':
             self.depth = 0
-            self.fullname = self.name = '<root>'
+            self.fullname = self.name = '/'
         else:
             self.depth = self._calc_depth(self.path)
             self.name = os.path.basename(self.path)

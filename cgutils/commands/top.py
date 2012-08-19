@@ -71,7 +71,7 @@ class CGTopStats:
         self.cgroups = cgroups
 
         if self.options.hide_root:
-            del self.cgroups['<root>']
+            del self.cgroups['/']
 
     def _get_skelton_stats(self, name, n_procs):
         return {
