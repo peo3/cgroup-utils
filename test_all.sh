@@ -38,7 +38,8 @@ test_run_event()
 {
     $* >/dev/null 2>$ERRFILE
     ret=$?
-    if [ $? = 2 ]; then
+    if [ $ret = 2 ]; then
+        # Timed out
         echo "[ok] $*"
     else
         echo "[NG] $*"
@@ -67,12 +68,14 @@ for subsys in $enabled_cgroups; do
     test_run python bin/cgutil configs -o $subsys
     test_run python bin/cgutil stats -o $subsys
 done
+
 test_run python bin/cgutil top -b -n 1
+
 root=$(awk '/^cgroup.*memory/ {print $2;}' /proc/mounts)
 path=$root/memory.usage_in_bytes
-test_run python bin/cgutil event -t 0.1 $path +1M
+test_run_event python bin/cgutil event -t 0.1 $path +1M
 path=$root/memory.oom_control
-test_run python bin/cgutil event -t 0.1 $path
+test_run_event python bin/cgutil event -t 0.1 $path
 
 echo "## Testing each command helps"
 for cmd in configs event pgrep stats top tree; do
