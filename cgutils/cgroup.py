@@ -574,7 +574,7 @@ class CGroup:
         fileops.mkdir(new_path)
         new = get_cgroup(new_path)
         if set_initparams:
-            params = self.subsystem.get_init_parameters(self.parent.get_configs())
+            params = self.subsystem.get_init_parameters(self.get_configs())
             for filename, value in params.iteritems():
                 new.set_config(filename, value)
         return new
