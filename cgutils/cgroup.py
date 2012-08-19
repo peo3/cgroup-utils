@@ -569,6 +569,10 @@ class CGroup:
         self.pids = [int(pid) for pid in pids if pid != '']
         self.n_procs = len(pids)
 
+    def set_config(self, name, value):
+        path = os.path.join(self.fullpath, self.subsystem.name + '.' + name)
+        fileops.write(path, str(value))
+
     def mkdir(self, name, set_initparams=True):
         new_path = os.path.join(self.fullpath, name)
         fileops.mkdir(new_path)
