@@ -87,7 +87,7 @@ def test_subsystem(cmd, cmdline, _options, subsys=None):
         for opts in itertools.combinations(_options, n + 1):
             opts = list(opts)
             if cmd == 'top':
-                opts.extend(['-b', '-n', '3', '-d', '0.3'])
+                opts.extend(['-b', '-n', '3', '-d', '0.1'])
             elif cmd == 'pgrep':
                 opts.append('sh')
             elif cmd == 'tree' and '-a' in opts and subsys != 'cpu':
