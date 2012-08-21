@@ -20,8 +20,6 @@ import os
 
 from cgutils import cgroup
 from cgutils import command
-from cgutils import formatter
-from cgutils import host
 
 
 class Command(command.Command):
