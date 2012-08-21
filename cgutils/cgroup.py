@@ -359,6 +359,17 @@ class SubsystemDevices(Subsystem):
     }
 
 
+class SubsystemNetPrio(Subsystem):
+    NAME = 'net_prio'
+    STATS = {
+        'prioidx': long,
+    }
+    __ifs = os.listdir('/sys/class/net')
+    CONFIGS = {
+        'ifpriomap': SimpleStat(zip(__ifs, [0] * len(__ifs))),
+    }
+
+
 class SubsystemName(Subsystem):
     NAME = 'name'
 
@@ -376,6 +387,7 @@ _subsystem_name2class = {
     'freezer': SubsystemFreezer,
     'net_cls': SubsystemNetCls,
     'devices': SubsystemDevices,
+    'net_prio': SubsystemNetPrio,
 }
 
 
