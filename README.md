@@ -20,7 +20,7 @@ For example, cgutil top is a top-like tool which shows activities of running pro
 
     $ python setup.py bdist --formats=rpm
 
-#Available subcommands
+#Available commands
 
 - configs
 - event
@@ -33,7 +33,7 @@ For example, cgutil top is a top-like tool which shows activities of running pro
 
 ##cgutil configs
 
-This subcommand show you configurations of cgroups.
+This command show you configurations of cgroups.
 By default, it shows only changed configurations.
 
 ###Example output
@@ -51,7 +51,7 @@ By default, it shows only changed configurations.
 
 ##cgutil event
 
-This subcommand makes cgroup.event_control easy to use.
+This command makes cgroup.event_control easy to use.
 It exits when a state of a target cgroup crosses a threshold which you set,
 thus, you can know the state of the cgroup has changed.
 
@@ -62,7 +62,7 @@ thus, you can know the state of the cgroup has changed.
 
 ##cgutil pgrep
 
-This subcommand is alike `pgrep` command but it shows cgroups in addtion to PIDs.
+This command is alike `pgrep` command but it shows cgroups in addtion to PIDs.
 
 ###Example output
 
@@ -78,7 +78,7 @@ This subcommand is alike `pgrep` command but it shows cgroups in addtion to PIDs
 
 ##cgutil stats
 
-This subcommand shows you states of cgroups.
+This command shows you states of cgroups.
 
 ###Example output
 
@@ -104,7 +104,7 @@ This subcommand shows you states of cgroups.
 
 ##cgutil top
 
-This subcommand is alike `top` command but it shows activities in a unit of cgroups.
+This command is alike `top` command but it shows activities in a unit of cgroups.
 
 ###Example output
 
@@ -122,7 +122,7 @@ This subcommand is alike `top` command but it shows activities in a unit of cgro
 
 ##cgutil tree
 
-This subcommand shows you tree structure of cgroups.
+This command shows you tree structure of cgroups.
 
 ###Example outputs
     $ cgutil tree -o blkio
