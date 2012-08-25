@@ -37,7 +37,9 @@ Available subcommands
 
 -  configs
 -  event
+-  mkdir
 -  pgrep
+-  rmdir
 -  stats
 -  top
 -  tree
@@ -184,7 +186,7 @@ Example outputs
 Supported Linux Version
 =======================
 
-3.4.y
+3.5.y
 
 License
 =======

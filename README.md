@@ -24,7 +24,9 @@ For example, cgutil top is a top-like tool which shows activities of running pro
 
 - configs
 - event
+- mkdir
 - pgrep
+- rmdir
 - stats
 - top
 - tree
@@ -143,7 +145,7 @@ This subcommand shows you tree structure of cgroups.
 
 #Supported Linux Version
 
-3.4.y
+3.5.y
 
 #License
 
