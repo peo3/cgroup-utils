@@ -18,7 +18,7 @@ classifiers = [
     'Topic :: Utilities',
 ]
 
-long_description = open('README').read()
+long_description = open('README').read() + '\n' + open('Changelog').read()
 
 setup(name='cgroup-utils',
       version=VERSION,
