@@ -67,7 +67,8 @@ class CGTopStats:
                 root_cgroup = cgroup.scan_cgroups(name, self.FILTERS[name])
                 cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
             except EnvironmentError, e:
-                print >> sys.stderr, e
+                # Don't annoy users by showing error messages
+                pass
         self.cgroups = cgroups
 
         if self.options.hide_root:
