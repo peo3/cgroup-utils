@@ -63,6 +63,11 @@ class Process(object):
             #args = [cmdline,]
             args = cmdline.split(' ')
             name = args[0]
+
+        if len(name) == 0:
+            name = os.path.basename(' '.join(args[0:2]))
+            return name
+
         if name[0] == '/':
             name = os.path.basename(name)
         name = name.rstrip(':')
