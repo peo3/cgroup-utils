@@ -55,6 +55,8 @@ class Process(object):
         cmdline = fileops.read('/proc/%d/cmdline' % self.pid)
         if '\0' in cmdline:
             args = cmdline.rstrip('\0').split('\0')
+            # Reject empty strings, say ['', '-AOxRR', '3398.byobu']
+            args = filter(len, args)
             if ' ' in args[0]:
                 name = args[0].split(' ')[0]
             else:
