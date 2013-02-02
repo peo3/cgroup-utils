@@ -320,6 +320,13 @@ class SubsystemBlkio(Subsystem):
         'throttle.io_service_bytes': BlkioStat,
         'throttle.io_serviced': BlkioStat,
         'time': SimpleStat,
+        # Debugging files (Appeared only CONFIG_DEBUG_BLK_CGROUP=y)
+        'avg_queue_size': BlkioStat,
+        'dequeue': BlkioStat,
+        'empty_time': BlkioStat,
+        'group_wait_time': BlkioStat,
+        'idle_time': BlkioStat,
+        'unaccounted_time': BlkioStat,
     }
     CONFIGS = {
         'throttle.read_iops_device': SimpleStat({}),
