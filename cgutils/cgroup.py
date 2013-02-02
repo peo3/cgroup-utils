@@ -370,6 +370,22 @@ class SubsystemNetPrio(Subsystem):
     }
 
 
+class SubsystemHugetlb(Subsystem):
+    NAME = 'hugetlb'
+    MAX_ULONGLONG = 2 ** 63 - 1
+    # FIXME: this is x86 specific and we have to treat
+    # different size of HugeTLB on other architectures.
+    __SIZE = '2MB'
+    STATS = {
+        __SIZE + '.failcnt': long,
+        __SIZE + '.max_usage_in_bytes': long,
+        __SIZE + '.usage_in_bytes': long,
+    }
+    CONFIGS = {
+        __SIZE + '.limit_in_bytes': MAX_ULONGLONG,
+    }
+
+
 class SubsystemName(Subsystem):
     NAME = 'name'
 
@@ -388,6 +404,7 @@ _subsystem_name2class = {
     'net_cls': SubsystemNetCls,
     'devices': SubsystemDevices,
     'net_prio': SubsystemNetPrio,
+    'hugetlb': SubsystemHugetlb,
 }
 
 
