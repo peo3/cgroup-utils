@@ -1,6 +1,5 @@
 #!/bin/sh
 
-SUBSYS="cpu cpuacct cpuset memory blkio freezer net_cls devices"
 ERRFILE=/tmp/.cgroup-utils.stderr
 
 enabled_cgroups=
