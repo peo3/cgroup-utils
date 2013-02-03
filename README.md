@@ -51,7 +51,7 @@ By default, it shows only changed configurations.
 
 ##cgutil event
 
-This command makes cgroup.event_control easy to use.
+This command makes cgroup.event\_control easy to use.
 It exits when a state of a target cgroup crosses a threshold which you set,
 thus, you can know the state of the cgroup has changed.
 
@@ -145,7 +145,19 @@ This command shows you tree structure of cgroups.
 
 #Supported Linux Version
 
-3.5.y
+3.7.y
+
+##Supported subsystems
+
+- blkio (and its debug feature)
+- cpuset
+- cpu and cpuacct
+- devices
+- freezer
+- hugetlb
+- memory
+- net\_cls
+- net\_prio
 
 #License
 
