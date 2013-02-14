@@ -16,41 +16,33 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2012 peo3 <peo314159265@gmail.com>
-
+# Copyright (c) 2012,2013 peo3 <peo314159265@gmail.com>
 import sys
 
+import cgutils.command
 import cgutils.commands
 
-COMMANDS = cgutils.commands.__all__
 
-def usage():
-    str = ''
-    str += 'Usage: cgutil <cmd> [options] [args]\n'
-    str += '\t<cmd> := %s' % '|'.join(COMMANDS)
-    return str
+def main():
+    COMMANDS = cgutils.commands.__all__
 
-if len(sys.argv) <= 1:
-    print(usage())
-    sys.exit(1)
+    parser = cgutils.command.Command.parser
+    subparsers = parser.add_subparsers(dest='subcmd_name')
 
-cmd = sys.argv[1]
+    # Set subparsers of all subcommands
+    for cmd in COMMANDS:
+        mod = __import__('cgutils.commands' + '.' + cmd, fromlist=[cmd,])
+        mod.Command.add_subparser(subparsers)
 
-if cmd not in COMMANDS:
-    print(usage())
-    sys.exit(1)
+    # Run to know subcmd_name
+    args = parser.parse_args()
+    if args.debug:
+        print(args)
 
-mod = __import__('cgutils.commands' + '.' + cmd, fromlist=[cmd,])
+    mod = __import__('cgutils.commands' + '.' + args.subcmd_name, fromlist=[args.subcmd_name,])
+    cmd = mod.Command()
+    cmd.run()
 
-#
-# Run subcommand
-#
-parser = mod.Command.parser
-options, args = parser.parse_args()
 
-if options.debug:
-    print options
-
-cmd = mod.Command(options)
-cmd.run(args[1:])
-
+if __name__ == '__main__':
+    main()

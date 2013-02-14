@@ -14,7 +14,7 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
+# Copyright (c) 2011-2013 peo3 <peo314159265@gmail.com>
 
 import sys
 
@@ -27,24 +27,22 @@ from cgutils import host
 class Command(command.Command):
     NAME = 'configs'
     DEFAULT_SUBSYSTEM = 'cpu'
+    HELP = 'Show values of configurable cgroup files'
 
-    parser = command.Command.parser
-    parser.add_option('-o', action='store', type='string',
-                      dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
-                      help='Specify a subsystem [%default]')
-    parser.add_option('-d', '--show-default', action='store_true',
-                      dest='show_default', default=False,
-                      help='Show every parameters including default values')
-    parser.add_option('-r', '--show-rate', action='store_true',
-                      dest='show_rate', default=False,
-                      help='Show rate value to default/current values')
-    parser.add_option('-e', '--hide-empty', action='store_true',
-                      dest='hide_empty', default=False,
-                      help='Hide empty groups')
-    parser.add_option('-j', '--json', action='store_true',
-                      dest='json', default=False,
-                      help='Dump as JSON')
-    parser.usage = "%%prog %s [options]" % NAME
+    @staticmethod
+    def add_subparser(subparsers):
+        parser = subparsers.add_parser(Command.NAME, help=Command.HELP)
+        parser.add_argument('-o', dest='target_subsystem',
+                            default=Command.DEFAULT_SUBSYSTEM,
+                            help='Specify a subsystem [%(default)s]')
+        parser.add_argument('-d', '--show-default', action='store_true',
+                            help='Show every parameters including default values')
+        parser.add_argument('-r', '--show-rate', action='store_true',
+                            help='Show rate value to default/current values')
+        parser.add_argument('-e', '--hide-empty', action='store_true',
+                            help='Hide empty groups')
+        parser.add_argument('-j', '--json', action='store_true',
+                            help='Dump as JSON')
 
     def calc_memory_rate(val):
         meminfo = host.MemInfo()
@@ -70,7 +68,7 @@ class Command(command.Command):
                     valstr = formatter.byte(val)
             else:
                 valstr = str(val)
-            if self.options.show_rate and name in self._support_rate:
+            if self.args.show_rate and name in self._support_rate:
                 if self._support_rate[name]:
                     rate = self._support_rate[name](val)
                 else:
@@ -91,17 +89,17 @@ class Command(command.Command):
                 ret[name] = val
         return ret
 
-    def run(self, args):
-        root_cgroup = cgroup.scan_cgroups(self.options.target_subsystem)
+    def run(self):
+        root_cgroup = cgroup.scan_cgroups(self.args.target_subsystem)
 
         def collect_configs(_cgroup, store):
-            if self.options.debug:
+            if self.args.debug:
                 print(_cgroup)
 
-            if self.options.hide_empty and _cgroup.n_procs == 0:
+            if self.args.hide_empty and _cgroup.n_procs == 0:
                 return
-            if self.options.show_default:
-                if self.options.json:
+            if self.args.show_default:
+                if self.args.json:
                     store[_cgroup.path] = _cgroup.get_configs()
                 else:
                     # To calculate rates, default values are required
@@ -109,7 +107,7 @@ class Command(command.Command):
                 return
             configs = self._collect_changed_configs(_cgroup)
             if configs:
-                if self.options.json:
+                if self.args.json:
                     store[_cgroup.path] = configs
                 else:
                     # To calculate rates, default values are required
@@ -117,7 +115,7 @@ class Command(command.Command):
 
         cgroups = {}
         cgroup.walk_cgroups(root_cgroup, collect_configs, cgroups)
-        if self.options.json:
+        if self.args.json:
             import json
             json.dump(cgroups, sys.stdout, indent=4)
         else:

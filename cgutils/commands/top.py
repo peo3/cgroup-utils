@@ -14,11 +14,10 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
+# Copyright (c) 2011-2013 peo3 <peo314159265@gmail.com>
 #
 # This code is based on ui.py of iotop 0.4
 # Copyright (c) 2007 Guillaume Chazarain <guichaz@gmail.com>
-
 import sys
 import curses
 import select
@@ -489,41 +488,37 @@ class CGTopUI:
 
 class Command(command.Command):
     NAME = 'top'
+    HELP = 'Show cgroup activities like top command'
 
-    parser = command.Command.parser
-    parser.add_option('-i', '--show-inactive', action='store_true',
-                      dest='show_inactive', default=False,
-                      help='Show inactive groups')
-    parser.add_option('-z', '--show-zero', action='store_true',
-                      dest='show_zero', default=False,
-                      help='Show zero numbers')
-    parser.add_option('-e', '--show-empty', action='store_true',
-                      dest='show_empty', default=False,
-                      help='Hide empty groups')
-    parser.add_option('-r', '--hide-root', action='store_true',
-                      dest='hide_root', default=False,
-                      help='Hide the root group')
-    parser.add_option('-b', '--batch', action='store_true', dest='batch',
-                      help='non-interactive mode')
-    parser.add_option('-n', '--iter', type='int', dest='iterations',
-                      metavar='NUM',
-                      help='Number of iterations before ending [infinite]')
-    parser.add_option('-d', '--delay', type='float', dest='delay_seconds',
-                      help='Delay between iterations [%default seconds]',
-                      metavar='SEC', default=3)
-    parser.add_option('-u', '--update-cgroups-interval', type='float',
-                      dest='update_cgroups_interval',
-                      help='Update cgroups in every this interval [%default seconds]',
-                      metavar='SEC', default=10)
-    parser.usage = "%%prog %s [options]" % NAME
+    @staticmethod
+    def add_subparser(subparsers):
+        parser = subparsers.add_parser(Command.NAME, help=Command.HELP)
+        parser.add_argument('-i', '--show-inactive', action='store_true',
+                            help='Show inactive groups')
+        parser.add_argument('-z', '--show-zero', action='store_true',
+                            help='Show zero numbers')
+        parser.add_argument('-e', '--show-empty', action='store_true',
+                            help='Hide empty groups')
+        parser.add_argument('-r', '--hide-root', action='store_true',
+                            help='Hide the root group')
+        parser.add_argument('-b', '--batch', action='store_true',
+                            help='non-interactive mode')
+        parser.add_argument('-n', '--iter', type=int, dest='iterations', metavar='NUM',
+                            help='Number of iterations before ending [infinite]')
+        parser.add_argument('-d', '--delay', type=float, dest='delay_seconds',
+                            help='Delay between iterations [%(default)s seconds]',
+                            metavar='SEC', default=3.0)
+        parser.add_argument('-u', '--update-cgroups-interval', type=float,
+                            help='Update cgroups in every this interval [%(default)s seconds]',
+                            metavar='SEC', default=10.0)
 
     def _run_window(self, win):
-        cgstats = CGTopStats(self.options)
-        ui = CGTopUI(win, cgstats, self.options)
+        cgstats = CGTopStats(self.args)
+        ui = CGTopUI(win, cgstats, self.args)
         ui.run()
 
-    def run(self, args):
-        if self.options.batch:
+    def run(self):
+        if self.args.batch:
             return self._run_window(None)
         else:
             return curses.wrapper(self._run_window)

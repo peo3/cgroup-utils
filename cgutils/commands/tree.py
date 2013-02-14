@@ -14,8 +14,7 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
-
+# Copyright (c) 2011-2013 peo3 <peo314159265@gmail.com>
 from __future__ import with_statement
 import sys
 
@@ -62,34 +61,28 @@ class TreeContainer():
 
 class Command(command.Command):
     NAME = 'tree'
+    HELP = 'Show cgroups hierarchy like tree command'
     DEFAULT_SUBSYSTEM = 'cpu'
 
-    parser = command.Command.parser
-    parser.add_option('-o', action='store', type='string',
-                      dest='target_subsystem', default=DEFAULT_SUBSYSTEM,
-                      help='Specify a subsystem [cpu]')
-    parser.add_option('-e', '--hide-empty', action='store_true',
-                      dest='hide_empty', default=False,
-                      help='Hide empty groups [False]')
-    parser.add_option('-k', '--show-kthread', action='store_true',
-                      dest='show_kthread', default=False,
-                      help='Show kernel threads [False]')
-    parser.add_option('-c', '--color', action='store_true',
-                      dest='color', default=False,
-                      help='Coloring [False]')
-    parser.add_option('-i', '--show-pid', action='store_true',
-                      dest='show_pid', default=False,
-                      help='Show PID [False]')
-    parser.add_option('-n', '--show-nprocs', action='store_true',
-                      dest='show_nprocs', default=False,
-                      help='Show # of processes in each cgroup [False]')
-    parser.add_option('-p', '--show-procs', action='store_true',
-                      dest='show_procs', default=False,
-                      help='Show processes in each cgroup [False]')
-    parser.add_option('-a', '--show-autogroup', action='store_true',
-                      dest='show_autogroup', default=False,
-                      help='Show groups by autogroup feature [False]')
-    parser.usage = "%%prog %s [options]" % NAME
+    @staticmethod
+    def add_subparser(subparsers):
+        parser = subparsers.add_parser(Command.NAME, help=Command.HELP)
+        parser.add_argument('-o', dest='target_subsystem', default=Command.DEFAULT_SUBSYSTEM,
+                            help='Specify a subsystem [%(default)s]')
+        parser.add_argument('-e', '--hide-empty', action='store_true',
+                            help='Hide empty groups [%(default)s]')
+        parser.add_argument('-k', '--show-kthread', action='store_true',
+                            help='Show kernel threads [%(default)s]')
+        parser.add_argument('-c', '--color', action='store_true',
+                            help='Coloring [%(default)s]')
+        parser.add_argument('-i', '--show-pid', action='store_true',
+                            help='Show PID [%(default)s]')
+        parser.add_argument('-n', '--show-nprocs', action='store_true',
+                            help='Show # of processes in each cgroup [%(default)s]')
+        parser.add_argument('-p', '--show-procs', action='store_true',
+                            help='Show processes in each cgroup [%(default)s]')
+        parser.add_argument('-a', '--show-autogroup', action='store_true',
+                            help='Show groups by autogroup feature [%(default)s]')
 
     _INDENT_SIZE = 4
 
@@ -115,7 +108,7 @@ class Command(command.Command):
             s += decorate(proc.name, 'kthread')
         else:
             name = proc.name
-            if self.options.color:
+            if self.args.color:
                 if proc.is_group_leader():
                     name = decorate(name, 'groupleader')
                 if proc.is_session_leader():
@@ -123,38 +116,38 @@ class Command(command.Command):
                 if proc.is_running():
                     name = decorate(name, 'running')
             s += name
-        if self.options.show_pid:
+        if self.args.show_pid:
             s += "(%d)" % proc.pid
-        if self.options.debug:
+        if self.args.debug:
             s += str(indents)
         print(s)
 
     def _print_cgroup(self, cg, indents):
         cg.update()
-        if self.options.debug:
+        if self.args.debug:
             print(cg.pids)
         s = self._build_indent(indents)
-        if self.options.color:
+        if self.args.color:
             s += decorate(cg.name, 'cgroup')
         else:
             s += cg.name
-        if self.options.show_nprocs:
+        if self.args.show_nprocs:
             s += '(%d)' % cg.n_procs
-        if self.options.debug:
+        if self.args.debug:
             s += str(indents)
         print(s)
 
     def _print_autogroup(self, autogroup, indents):
-        if self.options.debug:
+        if self.args.debug:
             print(autogroup.pids)
         s = self._build_indent(indents)
-        if self.options.color:
+        if self.args.color:
             s += decorate(autogroup.name, 'autogroup')
         else:
             s += autogroup.name
-        if self.options.show_nprocs:
+        if self.args.show_nprocs:
             s += "(%d)" % len(autogroup.pids)
-        if self.options.debug:
+        if self.args.debug:
             s += str(indents)
         print(s)
 
@@ -182,7 +175,7 @@ class Command(command.Command):
         def build_tree(proc_list):
             _containers = []
             for proc in proc_list:
-                if not self.options.show_kthread and proc.is_kthread():
+                if not self.args.show_kthread and proc.is_kthread():
                     continue
 
                 cont = TreeContainer(proc)
@@ -193,7 +186,7 @@ class Command(command.Command):
             return _containers
 
         for top_proc in tops:
-            if not self.options.show_kthread and top_proc.is_kthread():
+            if not self.args.show_kthread and top_proc.is_kthread():
                 continue
 
             cont = TreeContainer(top_proc)
@@ -216,27 +209,27 @@ class Command(command.Command):
             if name is None:
                 # Want to put kthreads at the tail
                 continue
-            if self.options.debug:
+            if self.args.debug:
                 print(name + str(pids))
             group = AutoGroup(name, pids)
             cont = TreeContainer(group)
             cont.childs = self._build_process_container_tree(group.pids)
             containers.append(cont)
 
-        if None in groups and self.options.show_kthread:
+        if None in groups and self.args.show_kthread:
             containers += self._build_process_container_tree(groups[None])
 
         return containers
 
-    def run(self, args):
-        if self.options.show_autogroup and self.options.target_subsystem != 'cpu':
+    def run(self):
+        if self.args.show_autogroup and self.args.target_subsystem != 'cpu':
             print("Error: autogroup is meaningless for %s subsystem" %
-                  self.options.target_subsystem)
+                  self.args.target_subsystem)
             sys.exit(1)
 
-        root_cgroup = cgroup.scan_cgroups(self.options.target_subsystem)
+        root_cgroup = cgroup.scan_cgroups(self.args.target_subsystem)
 
-        if self.options.debug:
+        if self.args.debug:
             print(root_cgroup)
 
         def build_container_tree(container):
@@ -245,21 +238,21 @@ class Command(command.Command):
                 child.update()
                 n_childs = len(child.childs)
                 n_pids = len(child.pids)
-                if self.options.hide_empty and n_childs == 0 and n_pids == 0:
+                if self.args.hide_empty and n_childs == 0 and n_pids == 0:
                     continue
                 cont = TreeContainer(child)
                 container.childs.append(cont)
 
                 build_container_tree(cont)
 
-            if not self.options.show_procs:
+            if not self.args.show_procs:
                 return
 
             _cgroup.update()
-            if self.options.debug:
+            if self.args.debug:
                 print(_cgroup.pids)
 
-            if self.options.show_autogroup and container == root_container:
+            if self.args.show_autogroup and container == root_container:
                 # Autogroup is effective only when processes don't belong
                 # to any cgroup
                 groups = self._build_autogroup_container_tree(_cgroup.pids)
@@ -272,7 +265,7 @@ class Command(command.Command):
         build_container_tree(root_container)
 
         def print_containers_recursively(cont, indents):
-            if self.options.debug:
+            if self.args.debug:
                 print(cont)
 
             if isinstance(cont.this, cgroup.CGroup):

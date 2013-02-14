@@ -16,9 +16,8 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2012 peo3 <peo314159265@gmail.com>
+# Copyright (c) 2012,2013 peo3 <peo314159265@gmail.com>
 #
-
 from __future__ import with_statement
 import sys
 import os
@@ -34,12 +33,17 @@ from cgutils import formatter
 
 class Command(command.Command):
     NAME = 'event'
+    HELP = 'Wait for an event'
 
-    parser = command.Command.parser
-    parser.add_option('-t', '--timeout', type='float', dest='timeout_seconds',
-                      help='Timeout in SEC [%default seconds]',
-                      metavar='SEC', default=0.0)
-    parser.usage = "%%prog %s [options] <target_file> [<argument>...]" % NAME
+    @staticmethod
+    def add_subparser(subparsers):
+        parser = subparsers.add_parser(Command.NAME, help=Command.HELP)
+        parser.add_argument('-t', '--timeout', type=float, dest='timeout_seconds',
+                            help='Timeout in SEC [%(default)s seconds]',
+                            metavar='SEC', default=0.0)
+        parser.add_argument('target_file', metavar='TARGET_FILE', help='Target cgroup file to wait for an event')
+        parser.add_argument('threshold', nargs='?', metavar='THRESHOLD',
+                            help='Threshold for memory.usage_in_bytes and memory.memsw.usage_in_bytes')
 
     def _parse_value(self, val):
         if val[-1] == 'K':
@@ -59,30 +63,19 @@ class Command(command.Command):
             usage = stats['memsw.usage_in_bytes']
             print "%s(memsw): %d (%s)" % (title, usage, formatter(usage))
 
-    def run(self, args):
-        if len(args) == 0:
-            self.parser.error('Less arguments: ' + ' '.join(args))
-
-        if self.options.debug:
-            print args
-
-        target_file = args[0]
-
-        if not os.path.exists(target_file):
-            print "File not found: %s" % target_file
+    def run(self):
+        if not os.path.exists(self.args.target_file):
+            print "File not found: %s" % self.args.target_file
             sys.exit(1)
+        target_file = self.args.target_file
 
         target_name = os.path.basename(target_file)
 
         arguments = []
         if target_name in ['memory.usage_in_bytes', 'memory.memsw.usage_in_bytes']:
-            self.parser.usage = "%%prog %s [options] <target_file> <threshold>" % self.NAME
-            if len(args) < 2:
-                self.parser.error('Less arguments: ' + ' '.join(args))
-
-            if len(args) > 2:
-                self.parser.error('Too many arguments: ' + ' '.join(args))
-            threshold = args[1]
+            if not self.args.threshold:
+                self.parser.error('Less arguments: ' + ' '.join(self.args))
+            threshold = self.args.threshold
 
             if threshold[0] == '+':
                 cur = long(fileops.read(target_file))
@@ -95,15 +88,14 @@ class Command(command.Command):
             else:
                 threshold = self._parse_value(threshold)
 
-            if self.options.verbose:
+            if self.args.verbose:
                 print "Threshold: %d (%s)" % (threshold, formatter.byte(threshold))
 
             arguments.append(threshold)
 
         elif target_name == 'memory.oom_control':
-            self.parser.usage = "%%prog %s [options] <target_file>" % self.NAME
-            if len(args) != 1:
-                self.parser.error('Too many arguments: ' + ' '.join(args))
+            if self.args.threshold:
+                self.parser.error('Too many arguments: ' + ' '.join(self.args))
 
         else:
             files = ', '.join(cgroup.EventListener.SUPPORTED_FILES)
@@ -113,7 +105,7 @@ class Command(command.Command):
 
         cg = cgroup.get_cgroup(os.path.dirname(target_file))
 
-        if self.options.verbose:
+        if self.args.verbose:
             self._show_memory_usage('Before', cg)
 
         pid = os.fork()
@@ -126,8 +118,8 @@ class Command(command.Command):
             os._exit(0)
 
         timed_out = False
-        if self.options.timeout_seconds:
-            remained = self.options.timeout_seconds
+        if self.args.timeout_seconds:
+            remained = self.args.timeout_seconds
             while remained > 0:
                 ret = os.waitpid(pid, os.WNOHANG)
 
@@ -145,11 +137,11 @@ class Command(command.Command):
             print('The cgroup seems to have been removed.')
             sys.exit(1)
 
-        if self.options.verbose:
+        if self.args.verbose:
             self._show_memory_usage('After', cg)
 
         if timed_out:
-            if self.options.verbose:
+            if self.args.verbose:
                 print('Timed out')
             sys.exit(2)
         else:

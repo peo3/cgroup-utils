@@ -14,8 +14,7 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2012 peo3 <peo314159265@gmail.com>
-
+# Copyright (c) 2012,2013 peo3 <peo314159265@gmail.com>
 import os
 
 from cgutils import cgroup
@@ -24,33 +23,30 @@ from cgutils import command
 
 class Command(command.Command):
     NAME = 'mkdir'
+    HELP = 'Make directories of cgroups'
 
-    parser = command.Command.parser
-    parser.add_option('-a', '--apply-all', action='store_true',
-                      dest='apply_all', default=False,
-                      help='Make directories for each subsystem')
-    parser.add_option('-p', '--parents', action='store_true',
-                      dest='parents', default=False,
-                      help='Make parent directories if not exist')
-    parser.usage = "%%prog %s [options]" % NAME
+    @staticmethod
+    def add_subparser(subparsers):
+        parser = subparsers.add_parser(Command.NAME, help=Command.HELP)
+        parser.add_argument('-a', '--apply-all', action='store_true',
+                            help='Make directories for each subsystem')
+        parser.add_argument('-p', '--parents', action='store_true',
+                            help='Make parent directories if not exist')
+        parser.add_argument('target_dir', metavar='TARGET_DIRECTORY',
+                            help='Target directory path')
 
-    def run(self, args):
-        if len(args) == 0:
-            self.parser.error('Less arguments: ' + ' '.join(args))
-
-        if self.options.debug:
+    def run(self):
+        if self.args.debug:
             print args
 
-        target_dir = args[0]
-
-        parent_path = os.path.dirname(target_dir)
-        new = os.path.basename(target_dir)
-        if self.options.parents and not os.path.exists(parent_path):
+        parent_path = os.path.dirname(self.args.target_dir)
+        new = os.path.basename(self.args.target_dir)
+        if self.args.parents and not os.path.exists(parent_path):
             self.parser.error('%s not found' % parent_path)
 
         parent = cgroup.get_cgroup(parent_path)
 
-        if not self.options.apply_all:
+        if not self.args.apply_all:
             parent.mkdir(new)
         else:
             status = cgroup.SubsystemStatus()
@@ -67,10 +63,10 @@ class Command(command.Command):
             to_be_created = []
             for _parent in parents:
                 new_path = os.path.join(_parent.fullpath, new)
-                if self.options.debug:
+                if self.args.debug:
                     print(new_path)
                 if os.path.exists(new_path):
-                    if not self.options.parents:
+                    if not self.args.parents:
                         print("%s exists" % new_path)
                         sys.exit(1)
                     else:
@@ -78,11 +74,11 @@ class Command(command.Command):
                 else:
                     to_be_created.append(_parent)
 
-            if self.options.debug:
+            if self.args.debug:
                 print(to_be_created)
 
             for _parent in to_be_created:
-                if self.options.debug:
+                if self.args.debug:
                     new_path = os.path.join(_parent.fullpath, new)
                     print("mkdir %s" % new_path)
                 new_path = os.path.join(_parent.fullpath, new)

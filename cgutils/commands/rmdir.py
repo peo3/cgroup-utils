@@ -14,8 +14,7 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2012 peo3 <peo314159265@gmail.com>
-
+# Copyright (c) 2012,2013 peo3 <peo314159265@gmail.com>
 import sys
 import os
 import os.path
@@ -26,23 +25,20 @@ from cgutils import command
 
 class Command(command.Command):
     NAME = 'rmdir'
+    HELP = 'Remove directores of cgroups'
 
-    parser = command.Command.parser
-    parser.add_option('-a', '--apply-all', action='store_true',
-                      dest='apply_all', default=False,
-                      help='Remove directories for each subsystem')
-    parser.usage = "%%prog %s [options]" % NAME
+    @staticmethod
+    def add_subparser(subparsers):
+        parser = subparsers.add_parser(Command.NAME, help=Command.HELP)
+        parser.add_argument('-a', '--apply-all', action='store_true',
+                            help='Remove directories for each subsystem')
+        parser.add_argument('target_dir', metavar='TARGET_DIRECTORY',
+                            help='Target directory path')
 
-    def run(self, args):
-        if len(args) == 0:
-            self.parser.error('Less arguments: ' + ' '.join(args))
+    def run(self):
+        target_dir = self.args.target_dir
 
-        if self.options.debug:
-            print args
-
-        target_dir = args[0]
-
-        if not self.options.apply_all:
+        if not self.args.apply_all:
             if not os.path.exists(target_dir):
                 print("Error: %s not found" % target_dir)
                 sys.exit(1)
@@ -73,7 +69,7 @@ class Command(command.Command):
 
             # Check directory existence first
             for _target in targets:
-                if self.options.debug:
+                if self.args.debug:
                     print(_target.fullpath)
                 if not os.path.exists(_target.fullpath):
                     print("Error: %s not found" % _target.fullpath)
@@ -83,7 +79,7 @@ class Command(command.Command):
                     sys.exit(1)
 
             for _target in targets:
-                if self.options.debug:
+                if self.args.debug:
                     print("rmdir %s" % _target.fullpath)
                 if not os.path.exists(_target.fullpath):
                     # XXX: this may happen when systemd creates

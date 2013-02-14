@@ -14,21 +14,25 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2012 peo3 <peo314159265@gmail.com>
+# Copyright (c) 2012,2013 peo3 <peo314159265@gmail.com>
 
-import optparse
+import argparse
 
 from cgutils.version import VERSION
 
 
 class Command():
-    NAME = 'cgutil'
-    parser = optparse.OptionParser(version="%s %s" % (NAME, VERSION))
-    parser.add_option('--debug', action='store_true', dest='debug',
-                      default=False, help='Show debug messages')
-    parser.add_option('-v', '--verbose', action='store_true', dest='verbose',
-                      default=False, help='Output extra messages')
-    parser.usage = "%%prog %s [options]" % NAME
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--version', action='version', version=VERSION)
+    parser.add_argument('--debug', action='store_true', help='Show debug messages')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Output extra messages')
 
-    def __init__(self, options):
-        self.options = options
+    def __init__(self):
+        self.args = self.parser.parse_args()
+
+    @staticmethod
+    def add_subparser(subparsers):
+        raise NotImplementedError
+
+    def run(self):
+        raise NotImplementedError
