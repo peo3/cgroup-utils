@@ -14,24 +14,15 @@
 #
 # See the COPYING file for license information.
 #
-# Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
+# Copyright (c) 2011-2013 peo3 <peo314159265@gmail.com>
 
 from __future__ import with_statement
 import os
 import os.path
 import re
+import multiprocessing
 
 import fileops
-
-
-try:
-    import multiprocessing
-except ImportError:
-    # For python 2.5 or older
-    class Multiprocessing:
-        def cpu_count(self):
-            return fileops.read('/proc/cpuinfo').count('processor')
-    multiprocessing = Multiprocessing()
 
 
 class CPUInfo():
