@@ -186,7 +186,20 @@ Example outputs
 Supported Linux Version
 =======================
 
-3.5.y
+3.8.y
+
+Supported subsystems
+--------------------
+
+-  blkio (and its debug feature)
+-  cpuset
+-  cpu and cpuacct
+-  devices
+-  freezer
+-  hugetlb
+-  memory
+-  net\_cls
+-  net\_prio
 
 License
 =======
