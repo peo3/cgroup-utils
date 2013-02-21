@@ -416,6 +416,8 @@ class SubsystemFreezer(Subsystem):
     NAME = 'freezer'
     STATS = {
         'state': str,
+        'parent_freezing': long,
+        'self_freezing': long,
     }
 
 
