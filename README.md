@@ -145,7 +145,7 @@ This command shows you tree structure of cgroups.
 
 #Supported Linux Version
 
-3.7.y
+3.8.y
 
 ##Supported subsystems
 
