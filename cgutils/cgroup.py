@@ -203,6 +203,72 @@ class PercpuStat(dict):
         return ret
 
 
+class SlabinfoStat(dict):
+    def __parse_version_2_1(lines):
+        # Drop legend '# name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> : tunables <limit> <batchcount> <sharedfactor> : slabdata <active_slabs> <num_slabs> <sharedavail>'
+        lines.pop(0)
+
+        # eg 'kmalloc-128           32     32    128   32    1 : tunables    0    0    0 : slabdata      1      1      0'
+        r1 = re.compile('([\w\-\_]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)')
+        r2 = re.compile('tunables\s+(\d+)\s+(\d+)\s+(\d+)')
+        r3 = re.compile('slabdata\s+(\d+)\s+(\d+)\s+(\d+)')
+
+        ret = {}
+        for line in lines:
+            fields = [field.strip() for field in line.split(':')]
+
+            # eg 'kmalloc-128           32     32    128   32    1'
+            m = r1.match(fields[0])
+            if not m:
+                continue
+            name = m.group(1)
+            ret[name] = {
+                'active_objs': long(m.group(2)),
+                'num_objs': long(m.group(3)),
+                'objsize': long(m.group(4)),
+                'objperslab': long(m.group(5)),
+                'pagesperslab': long(m.group(6)),
+            }
+            item = ret[name]
+
+            # eg 'tunables    0    0    0'
+            m = r2.match(fields[1])
+            if not m:
+                continue
+            item['tunables'] = {
+                'limit': long(m.group(1)),
+                'batchcount': long(m.group(2)),
+                'sharedfactor': long(m.group(3)),
+            }
+
+            # eg 'slabdata      1      1      0'
+            m = r3.match(fields[2])
+            if not m:
+                continue
+            item['slabdata'] = {
+                'active_slabs': long(m.group(1)),
+                'num_slabs': long(m.group(2)),
+                'sharedavail': long(m.group(3)),
+            }
+
+        return ret
+
+    _PARSERS = {
+        '2.1': __parse_version_2_1,
+    }
+
+    @staticmethod
+    def parse(content):
+        lines = content.split('\n')
+        # eg 'slabinfo - version: 2.1'
+        header = lines.pop(0)
+        m = re.match('slabinfo - version: ([\d\.]+)', header)
+        if m:
+            return SlabinfoStat._PARSERS[m.group(1)](lines)
+        else:
+            raise EnvironmentError('No header found in memory.kmem.slabinfo')
+
+
 #
 # The base class of subsystems
 #
@@ -290,6 +356,10 @@ class SubsystemMemory(Subsystem):
         'kmem.tcp.failcnt': long,
         'kmem.tcp.max_usage_in_bytes': long,
         'kmem.tcp.usage_in_bytes': long,
+        'kmem.failcnt': long,
+        'kmem.max_usage_in_bytes': long,
+        'kmem.usage_in_bytes': long,
+        'kmem.slabinfo': SlabinfoStat,
     }
     MAX_ULONGLONG = 2 ** 63 - 1
     CONFIGS = {
@@ -301,6 +371,7 @@ class SubsystemMemory(Subsystem):
         'swappiness': 60,
         'use_hierarchy': 0,
         'kmem.tcp.limit_in_bytes': MAX_ULONGLONG,
+        'kmem.limit_in_bytes': MAX_ULONGLONG,
     }
     CONTROLS = {
         'force_empty': None,
@@ -468,6 +539,7 @@ class CGroup:
         DevicesStat: DevicesStat.parse,
         NumaStat: NumaStat.parse,
         PercpuStat: PercpuStat.parse,
+        SlabinfoStat: SlabinfoStat.parse,
     }
 
     def _calc_depth(self, path):
@@ -590,10 +662,14 @@ class CGroup:
                 try:
                     stats[name] = self._PARSERS[cls](fileops.read(path))
                 except IOError, e:
+                    # XXX: we have to distinguish unexpected errors from the expected ones
                     if e.errno == errno.EOPNOTSUPP:
                         # Since 3.5 memory.memsw.* are always created even if disabled.
                         # If disabled we will get EOPNOTSUPP when read or write them.
                         # See commit af36f906c0f4c2ffa0482ecdf856a33dc88ae8c5 of the kernel.
+                        pass
+                    if e.errno == errno.EIO:
+                        # memory.kmem.slabinfo throws EIO until limit_in_bytes is set.
                         pass
                     else:
                         raise

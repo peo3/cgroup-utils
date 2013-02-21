@@ -125,3 +125,71 @@ def test_PercpuStat():
 
     input = '836842800783 '
     assert cgroup.PercpuStat.parse(input) == {0: 836842800783}
+
+
+def test_SlabinfoStat():
+    input = """slabinfo - version: 2.1
+# name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> : tunables <limit> <batchcount> <sharedfactor> : slabdata <active_slabs> <num_slabs> <sharedavail>
+kmalloc-128           32     32    128   32    1 : tunables    0    0    0 : slabdata      1      1      0
+anon_vma              64     64     64   64    1 : tunables    0    0    0 : slabdata      1      1      0
+mm_struct             18     18    896   18    4 : tunables    0    0    0 : slabdata      1      1      0
+"""
+
+    expected = {
+        'kmalloc-128': {
+            'active_objs': 32,
+            'num_objs': 32,
+            'objsize': 128,
+            'objperslab': 32,
+            'pagesperslab': 1,
+            'tunables': {
+                'limit': 0,
+                'batchcount': 0,
+                'sharedfactor': 0,
+            },
+            'slabdata': {
+                'active_slabs': 1,
+                'num_slabs': 1,
+                'sharedavail': 0,
+            },
+        },
+        'anon_vma': {
+            'active_objs': 64,
+            'num_objs': 64,
+            'objsize': 64,
+            'objperslab': 64,
+            'pagesperslab': 1,
+            'tunables': {
+                'limit': 0,
+                'batchcount': 0,
+                'sharedfactor': 0,
+            },
+            'slabdata': {
+                'active_slabs': 1,
+                'num_slabs': 1,
+                'sharedavail': 0,
+            },
+        },
+        'mm_struct': {
+            'active_objs': 18,
+            'num_objs': 18,
+            'objsize': 896,
+            'objperslab': 18,
+            'pagesperslab': 4,
+            'tunables': {
+                'limit': 0,
+                'batchcount': 0,
+                'sharedfactor': 0,
+            },
+            'slabdata': {
+                'active_slabs': 1,
+                'num_slabs': 1,
+                'sharedavail': 0,
+            },
+        },
+    }
+
+    #import pprint
+    #pprint.pprint(cgroup.SlabinfoStat.parse(input))
+    #pprint.pprint(expected)
+    assert cgroup.SlabinfoStat.parse(input) == expected
