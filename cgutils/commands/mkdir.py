@@ -67,7 +67,7 @@ class Command(command.Command):
                     print(new_path)
                 if os.path.exists(new_path):
                     if not self.args.parents:
-                        print(("%s exists" % new_path))
+                        print("%s exists" % new_path)
                         sys.exit(1)
                     else:
                         to_be_created.append(_parent)
@@ -80,7 +80,7 @@ class Command(command.Command):
             for _parent in to_be_created:
                 if self.args.debug:
                     new_path = os.path.join(_parent.fullpath, new)
-                    print(("mkdir %s" % new_path))
+                    print("mkdir %s" % new_path)
                 new_path = os.path.join(_parent.fullpath, new)
                 if os.path.exists(new_path):
                     # XXX: this may happen when systemd creates

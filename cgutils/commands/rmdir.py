@@ -40,17 +40,17 @@ class Command(command.Command):
 
         if not self.args.apply_all:
             if not os.path.exists(target_dir):
-                print(("Error: %s not found" % target_dir))
+                print("Error: %s not found" % target_dir)
                 sys.exit(1)
 
             if not os.path.isdir(target_dir):
-                print(("Error: %s is not a directory" % target_dir))
+                print("Error: %s is not a directory" % target_dir)
                 sys.exit(1)
 
             cg = cgroup.get_cgroup(target_dir)
 
             if cg.depth == 0:
-                print(("Error: %s is a root cgroup" % target_dir))
+                print("Error: %s is a root cgroup" % target_dir)
                 sys.exit(1)
 
             cg.rmdir()
@@ -70,17 +70,17 @@ class Command(command.Command):
             # Check directory existence first
             for _target in targets:
                 if self.args.debug:
-                    print((_target.fullpath))
+                    print(_target.fullpath)
                 if not os.path.exists(_target.fullpath):
-                    print(("Error: %s not found" % _target.fullpath))
+                    print("Error: %s not found" % _target.fullpath)
                     sys.exit(1)
                 if not os.path.isdir(_target.fullpath):
-                    print(("Error: %s is not a directory" % _target.fullpath))
+                    print("Error: %s is not a directory" % _target.fullpath)
                     sys.exit(1)
 
             for _target in targets:
                 if self.args.debug:
-                    print(("rmdir %s" % _target.fullpath))
+                    print("rmdir %s" % _target.fullpath)
                 if not os.path.exists(_target.fullpath):
                     # XXX: this may happen when systemd creates
                     # a cpuacct,cpu group and links cpu and cpuacct

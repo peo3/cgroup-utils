@@ -77,7 +77,7 @@ class Command(command.Command):
             else:
                 ratestr = ''
 
-            print(("\t%s=%s%s" % (name, valstr, ratestr)))
+            print("\t%s=%s%s" % (name, valstr, ratestr))
 
     def _collect_changed_configs(self, _cgroup):
         configs = _cgroup.get_configs()
