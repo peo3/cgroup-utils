@@ -39,6 +39,14 @@
 # define EFD_NONBLOCK 04000
 #endif
 
+struct module_state {
+    PyObject *error;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+#endif
+
 static PyObject *
 linux_eventfd(PyObject *self, PyObject *args)
 {
@@ -70,20 +78,53 @@ linux_close(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef LinuxSyscalls[] = {
-	{"eventfd",  linux_eventfd, METH_VARARGS,
+	{"eventfd", (PyCFunction)linux_eventfd, METH_VARARGS,
 		"Execute eventfd syscall."},
-	{"close",  linux_close, METH_VARARGS,
+	{"close", (PyCFunction)linux_close, METH_VARARGS,
 		"Execute close syscall."},
 	{NULL, NULL, 0, NULL}
 };
 
+#if PY_MAJOR_VERSION >= 3
+static int LinuxSyscalls_traverse(PyObject *m, visitproc visit, void *arg) {
+	Py_VISIT(GETSTATE(m)->error);
+	return 0;
+}
+
+static int LinuxSyscalls_clear(PyObject *m) {
+	Py_CLEAR(GETSTATE(m)->error);
+	return 0;
+}
+
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "cgutils.linux",
+        NULL,
+        sizeof(struct module_state),
+        LinuxSyscalls,
+        NULL,
+        LinuxSyscalls_traverse,
+        LinuxSyscalls_clear,
+        NULL
+};
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+PyObject *
+#else
 PyMODINIT_FUNC
+#endif
 initlinux(void)
 {
 	PyObject *module, *dict;
 	PyObject *val;
 
+#if PY_MAJOR_VERSION >= 3
+	module = PyModule_Create(&moduledef);
+#else
 	module = Py_InitModule("cgutils.linux", LinuxSyscalls);
+#endif
+
 	dict   = PyModule_GetDict(module);
 
 	val = Py_BuildValue("i", EFD_CLOEXEC);
@@ -95,5 +136,9 @@ initlinux(void)
 	val = Py_BuildValue("i", EFD_SEMAPHORE);
 	PyDict_SetItemString(dict, "EFD_SEMAPHORE", val);
 	Py_DECREF(val);
+
+#if PY_MAJOR_VERSION >= 3
+	return module;
+#endif
 }
 
