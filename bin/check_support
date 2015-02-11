@@ -61,7 +61,7 @@ unsupported_files = check_files_recursive(root_cgroup)
 unsupported_files = sorted(set(unsupported_files))
 
 if unsupported_files:
-    print >>sys.stderr, "Unsupported files: %s" % unsupported_files
+    sys.stderr.write("Unsupported files: %s\n" % unsupported_files)
     sys.exit(1)
 else:
     sys.exit(0)
