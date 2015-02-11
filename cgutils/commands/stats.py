@@ -62,7 +62,8 @@ class Command(command.Command):
 
         ret = print_recursive(cgname, stats, 0)
         if ret:
-            print(ret, end=' ')
+            # XXX python3: print(ret, end=' ') doesn't work on python2
+            sys.stdout.write(ret)
 
     def run(self):
         root_cgroup = cgroup.scan_cgroups(self.args.target_subsystem)
