@@ -159,6 +159,12 @@ This command shows you tree structure of cgroups.
 - net\_cls
 - net\_prio
 
+#Supported Python
+
+- python2: 2.6 and above
+- python3: 3.4 and above
+  - 3.0 to 3.3 may work but not tested
+
 #License
 
 The tools are distributed under GPLv2. See COPYING for more detail.
