@@ -3,8 +3,10 @@
 ERRFILE=/tmp/.cgroup-utils.stderr
 PYTHON=python
 
-while getopts 3 OPT; do
+while getopts 23 OPT; do
     case $OPT in
+        2)  PYTHON=python2
+        ;;
         3)  PYTHON=python3
         ;;
     esac
