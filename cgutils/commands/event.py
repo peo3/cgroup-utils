@@ -18,7 +18,7 @@
 #
 # Copyright (c) 2012,2013 peo3 <peo314159265@gmail.com>
 #
-from __future__ import with_statement
+
 import sys
 import os
 import os.path
@@ -47,25 +47,25 @@ class Command(command.Command):
 
     def _parse_value(self, val):
         if val[-1] == 'K':
-            return long(val.replace('M', '')) * 1024
+            return int(val.replace('M', '')) * 1024
         elif val[-1] == 'M':
-            return long(val.replace('M', '')) * 1024 * 1024
+            return int(val.replace('M', '')) * 1024 * 1024
         elif val[-1] == 'G':
-            return long(val.replace('M', '')) * 1024 * 1024 * 1024
+            return int(val.replace('M', '')) * 1024 * 1024 * 1024
         else:
-            return long(val)
+            return int(val)
 
     def _show_memory_usage(self, title, _cgroup):
         stats = _cgroup.get_stats()
         usage = stats['usage_in_bytes']
-        print "%s: %d (%s)" % (title, usage, formatter.byte(usage))
+        print("%s: %d (%s)" % (title, usage, formatter.byte(usage)))
         if 'memsw.usage_in_bytes' in stats:
             usage = stats['memsw.usage_in_bytes']
-            print "%s(memsw): %d (%s)" % (title, usage, formatter(usage))
+            print("%s(memsw): %d (%s)" % (title, usage, formatter(usage)))
 
     def run(self):
         if not os.path.exists(self.args.target_file):
-            print "File not found: %s" % self.args.target_file
+            print("File not found: %s" % self.args.target_file)
             sys.exit(1)
         target_file = self.args.target_file
 
@@ -78,18 +78,18 @@ class Command(command.Command):
             threshold = self.args.threshold
 
             if threshold[0] == '+':
-                cur = long(fileops.read(target_file))
+                cur = int(fileops.read(target_file))
                 threshold = threshold.replace('+', '')
                 threshold = cur + self._parse_value(threshold)
             elif threshold[0] == '-':
-                cur = long(fileops.read(target_file))
+                cur = int(fileops.read(target_file))
                 threshold = threshold.replace('-', '')
                 threshold = cur - self._parse_value(threshold)
             else:
                 threshold = self._parse_value(threshold)
 
             if self.args.verbose:
-                print "Threshold: %d (%s)" % (threshold, formatter.byte(threshold))
+                print("Threshold: %d (%s)" % (threshold, formatter.byte(threshold)))
 
             arguments.append(threshold)
 

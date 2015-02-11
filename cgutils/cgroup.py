@@ -24,7 +24,7 @@ import errno
 
 from cgutils import host
 from cgutils import process
-import fileops
+from . import fileops
 
 
 class SubsystemStatus(dict):
@@ -115,14 +115,14 @@ class SubsystemStatus(dict):
         self._update()
 
     def get_all(self):
-        return self.keys()
+        return list(self.keys())
 
     def get_available(self):
-        return [name for name in self.keys()
+        return [name for name in list(self.keys())
                 if self[name]['enabled']]
 
     def get_enabled(self):
-        return self.paths.keys()
+        return list(self.paths.keys())
 
     def get_path(self, subsys):
         return self.paths[subsys]
@@ -133,7 +133,7 @@ class SimpleList(list):
     def parse(content):
         ret = []
         for line in content.split('\n')[:-1]:
-            ret.append(long(line))
+            ret.append(int(line))
         return ret
 
 
@@ -143,7 +143,7 @@ class SimpleStat(dict):
         ret = {}
         for line in content.split('\n')[:-1]:
             name, val = line.split(' ')
-            ret[name] = long(val)
+            ret[name] = int(val)
         return ret
 
 
@@ -156,10 +156,10 @@ class BlkioStat(dict):
                 dev, type, val = line.split(' ')
                 if dev not in ret:
                     ret[dev] = {}
-                ret[dev][type] = long(val)
+                ret[dev][type] = int(val)
             elif line.count(' ') == 1:
                 type, val = line.split(' ')
-                ret[type] = long(val)
+                ret[type] = int(val)
             else:
                 raise EnvironmentError(line)
         return ret
@@ -180,10 +180,10 @@ class NumaStat(dict):
             item = {}
             entries = line.split(' ')
             name, value = entries[0].split('=')
-            item['total'] = long(value)
+            item['total'] = int(value)
             for entry in entries[1:]:
                 node, value = entry.split('=')
-                item[node] = long(value)
+                item[node] = int(value)
             ret[name] = item
         return ret
 
@@ -198,7 +198,7 @@ class PercpuStat(dict):
         stats = [stat for stat in stats if stat != '']
         i = 0
         for stat in stats:
-            ret[i] = long(stat)
+            ret[i] = int(stat)
             i += 1
         return ret
 
@@ -223,11 +223,11 @@ class SlabinfoStat(dict):
                 continue
             name = m.group(1)
             ret[name] = {
-                'active_objs': long(m.group(2)),
-                'num_objs': long(m.group(3)),
-                'objsize': long(m.group(4)),
-                'objperslab': long(m.group(5)),
-                'pagesperslab': long(m.group(6)),
+                'active_objs': int(m.group(2)),
+                'num_objs': int(m.group(3)),
+                'objsize': int(m.group(4)),
+                'objperslab': int(m.group(5)),
+                'pagesperslab': int(m.group(6)),
             }
             item = ret[name]
 
@@ -236,9 +236,9 @@ class SlabinfoStat(dict):
             if not m:
                 continue
             item['tunables'] = {
-                'limit': long(m.group(1)),
-                'batchcount': long(m.group(2)),
-                'sharedfactor': long(m.group(3)),
+                'limit': int(m.group(1)),
+                'batchcount': int(m.group(2)),
+                'sharedfactor': int(m.group(3)),
             }
 
             # eg 'slabdata      1      1      0'
@@ -246,9 +246,9 @@ class SlabinfoStat(dict):
             if not m:
                 continue
             item['slabdata'] = {
-                'active_slabs': long(m.group(1)),
-                'num_slabs': long(m.group(2)),
-                'sharedavail': long(m.group(3)),
+                'active_slabs': int(m.group(1)),
+                'num_slabs': int(m.group(2)),
+                'sharedavail': int(m.group(3)),
             }
 
         return ret
@@ -298,8 +298,8 @@ class SubsystemCpu(Subsystem):
     CONFIGS = {
         'shares':        1024,
         # Are the default values correct?
-        'rt_period_us':  long(fileops.read(_path_rt_period)),
-        'rt_runtime_us': long(fileops.read(_path_rt_runtime)),
+        'rt_period_us':  int(fileops.read(_path_rt_period)),
+        'rt_runtime_us': int(fileops.read(_path_rt_runtime)),
         'cfs_period_us': 100000,
         'cfs_quota_us': -1,
     }
@@ -308,7 +308,7 @@ class SubsystemCpu(Subsystem):
 class SubsystemCpuacct(Subsystem):
     NAME = 'cpuacct'
     STATS = {
-        'usage': long,
+        'usage': int,
         'stat': SimpleStat,
         'usage_percpu': PercpuStat,
     }
@@ -317,7 +317,7 @@ class SubsystemCpuacct(Subsystem):
 class SubsystemCpuset(Subsystem):
     NAME = 'cpuset'
     STATS = {
-        'memory_pressure': long,
+        'memory_pressure': int,
     }
     CONFIGS = {
         'cpu_exclusive': 0,
@@ -345,20 +345,20 @@ class SubsystemCpuset(Subsystem):
 class SubsystemMemory(Subsystem):
     NAME = 'memory'
     STATS = {
-        'failcnt': long,
-        'usage_in_bytes': long,
-        'max_usage_in_bytes': long,
-        'memsw.failcnt': long,
-        'memsw.max_usage_in_bytes': long,
-        'memsw.usage_in_bytes': long,
+        'failcnt': int,
+        'usage_in_bytes': int,
+        'max_usage_in_bytes': int,
+        'memsw.failcnt': int,
+        'memsw.max_usage_in_bytes': int,
+        'memsw.usage_in_bytes': int,
         'stat': SimpleStat,
         'numa_stat': NumaStat,
-        'kmem.tcp.failcnt': long,
-        'kmem.tcp.max_usage_in_bytes': long,
-        'kmem.tcp.usage_in_bytes': long,
-        'kmem.failcnt': long,
-        'kmem.max_usage_in_bytes': long,
-        'kmem.usage_in_bytes': long,
+        'kmem.tcp.failcnt': int,
+        'kmem.tcp.max_usage_in_bytes': int,
+        'kmem.tcp.usage_in_bytes': int,
+        'kmem.failcnt': int,
+        'kmem.max_usage_in_bytes': int,
+        'kmem.usage_in_bytes': int,
         'kmem.slabinfo': SlabinfoStat,
     }
     MAX_ULONGLONG = 2 ** 63 - 1
@@ -416,8 +416,8 @@ class SubsystemFreezer(Subsystem):
     NAME = 'freezer'
     STATS = {
         'state': str,
-        'parent_freezing': long,
-        'self_freezing': long,
+        'parent_freezing': int,
+        'self_freezing': int,
     }
 
 
@@ -442,11 +442,11 @@ class SubsystemDevices(Subsystem):
 class SubsystemNetPrio(Subsystem):
     NAME = 'net_prio'
     STATS = {
-        'prioidx': long,
+        'prioidx': int,
     }
     __ifs = os.listdir('/sys/class/net')
     CONFIGS = {
-        'ifpriomap': SimpleStat(zip(__ifs, [0] * len(__ifs))),
+        'ifpriomap': SimpleStat(list(zip(__ifs, [0] * len(__ifs)))),
     }
 
 
@@ -457,9 +457,9 @@ class SubsystemHugetlb(Subsystem):
     # different size of HugeTLB on other architectures.
     __SIZE = '2MB'
     STATS = {
-        __SIZE + '.failcnt': long,
-        __SIZE + '.max_usage_in_bytes': long,
-        __SIZE + '.usage_in_bytes': long,
+        __SIZE + '.failcnt': int,
+        __SIZE + '.max_usage_in_bytes': int,
+        __SIZE + '.usage_in_bytes': int,
     }
     CONFIGS = {
         __SIZE + '.limit_in_bytes': MAX_ULONGLONG,
@@ -494,11 +494,11 @@ def _get_subsystem(name):
     return _subsystem_name2class[name]()
 
 
-class NoSuchControlFileError(StandardError):
+class NoSuchControlFileError(Exception):
     pass
 
 
-class IsRootGroupError(StandardError):
+class IsRootGroupError(Exception):
     pass
 
 
@@ -533,7 +533,7 @@ class CGroup:
     }
     _PARSERS = {
         int: lambda content: int(content),
-        long: lambda content: long(content),
+        int: lambda content: int(content),
         str: lambda content: content.strip(),
         SimpleList: SimpleList.parse,
         SimpleStat: SimpleStat.parse,
@@ -577,9 +577,9 @@ class CGroup:
             self.parent = get_cgroup(os.path.dirname(self.fullpath))
 
         self.paths = {}
-        for file in self._STATS.keys() + self._CONFIGS.keys() + self._CONTROLS.keys():
+        for file in list(self._STATS.keys()) + list(self._CONFIGS.keys()) + list(self._CONTROLS.keys()):
             self.paths[file] = os.path.join(self.fullpath, file)
-        for file in subsystem.STATS.keys() + subsystem.CONFIGS.keys() + subsystem.CONTROLS.keys():
+        for file in list(subsystem.STATS.keys()) + list(subsystem.CONFIGS.keys()) + list(subsystem.CONTROLS.keys()):
             self.paths[file] = os.path.join(self.fullpath, subsystem.name + '.' + file)
 
         self.configs = {}
@@ -629,7 +629,7 @@ class CGroup:
         which are categorised in the configs group.
         """
         configs = {}
-        for name, default in self.configs.iteritems():
+        for name, default in self.configs.items():
             cls = default.__class__
             path = self.paths[name]
             if os.path.exists(path):
@@ -658,7 +658,7 @@ class CGroup:
         which are categorised in the stats group.
         """
         stats = {}
-        for name, cls in self.stats.iteritems():
+        for name, cls in self.stats.items():
             path = self.paths[name]
             if os.path.exists(path):
                 try:
@@ -693,7 +693,7 @@ class CGroup:
         new = get_cgroup(new_path)
         if set_initparams:
             params = self.subsystem.get_init_parameters(self.get_configs())
-            for filename, value in params.iteritems():
+            for filename, value in params.items():
                 new.set_config(filename, value)
         return new
 
@@ -762,7 +762,7 @@ class EventListener:
         target_name = self.target_name
         if target_name in ['memory.usage_in_bytes', 'memory.memsw.usage_in_bytes']:
             threshold = arguments[0]
-            line = "%d %d %d\0" % (self.event_fd, self.target_fd, long(threshold))
+            line = "%d %d %d\0" % (self.event_fd, self.target_fd, int(threshold))
         else:
             line = "%d %d\0" % (self.event_fd, self.target_fd)
         os.write(self.ec_fd, line)
@@ -793,7 +793,7 @@ def _scan_cgroups_recursive(subsystem, fullpath, mount_point, filters):
 #
 #  Public APIs
 #
-class NoSuchSubsystemError(StandardError):
+class NoSuchSubsystemError(Exception):
     pass
 
 
@@ -837,11 +837,11 @@ def get_cgroup(fullpath):
 
     status = SubsystemStatus()
     name = None
-    for name, path in status.paths.iteritems():
+    for name, path in status.paths.items():
         if path in fullpath:
             break
     else:
-        raise StandardError('Invalid path: ' + fullpath)
+        raise Exception('Invalid path: ' + fullpath)
     subsys = _get_subsystem(name)
 
     return CGroup(subsys, fullpath)

@@ -16,11 +16,11 @@
 #
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
 
-from __future__ import with_statement
+
 import os
 import os.path
 
-import fileops
+from . import fileops
 
 
 class Process(object):
@@ -56,7 +56,7 @@ class Process(object):
         if '\0' in cmdline:
             args = cmdline.rstrip('\0').split('\0')
             # Reject empty strings, say ['', '-AOxRR', '3398.byobu']
-            args = filter(len, args)
+            args = list(filter(len, args))
             if ' ' in args[0]:
                 name = args[0].split(' ')[0]
             else:

@@ -43,7 +43,7 @@ class Command(command.Command):
 
     def _print_stats(self, cgname, stats):
         def print_recursive(name, value, indent):
-            if isinstance(value, long):
+            if isinstance(value, int):
                 if self.args.show_zero or value != 0:
                     return "%s%s=%d\n" % (self._INDENT * indent, name, value)
             elif isinstance(value, list):
@@ -54,7 +54,7 @@ class Command(command.Command):
                                           ', '.join(values))
             elif isinstance(value, dict):
                 ret = ''
-                for n, v in value.iteritems():
+                for n, v in value.items():
                     ret += print_recursive(n, v, indent + 1)
                 if ret:
                     return "%s%s:\n" % (self._INDENT * indent, name) + ret
@@ -62,7 +62,7 @@ class Command(command.Command):
 
         ret = print_recursive(cgname, stats, 0)
         if ret:
-            print ret,
+            print(ret, end=' ')
 
     def run(self):
         root_cgroup = cgroup.scan_cgroups(self.args.target_subsystem)
@@ -82,5 +82,5 @@ class Command(command.Command):
             import json
             json.dump(cgroups, sys.stdout, indent=4)
         else:
-            for cgname, stats in cgroups.iteritems():
+            for cgname, stats in cgroups.items():
                 self._print_stats(cgname, stats)

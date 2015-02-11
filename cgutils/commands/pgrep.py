@@ -15,7 +15,7 @@
 # See the COPYING file for license information.
 #
 # Copyright (c) 2012,2013 peo3 <peo314159265@gmail.com>
-from __future__ import with_statement
+
 import os
 import os.path
 
@@ -73,6 +73,6 @@ class Command(command.Command):
                             output = "%d %s" % (proc.pid, proc.name)
                     else:
                         output = str(proc.pid)
-                    print('%s: %s' % (cg.path, output))
+                    print(('%s: %s' % (cg.path, output)))
 
         cgroup.walk_cgroups(root_cgroup, print_matched, None)

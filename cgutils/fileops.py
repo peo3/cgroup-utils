@@ -16,7 +16,7 @@
 #
 # Copyright (c) 2012 peo3 <peo314159265@gmail.com>
 
-from __future__ import with_statement
+
 import os
 
 
@@ -35,7 +35,7 @@ def write(path, cont):
         return f.write(cont)
 
 
-def mkdir(path, mode=0777):
+def mkdir(path, mode=0o777):
     os.mkdir(path, mode)
 
 

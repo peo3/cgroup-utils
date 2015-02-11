@@ -15,7 +15,7 @@
 # See the COPYING file for license information.
 #
 # Copyright (c) 2011-2013 peo3 <peo314159265@gmail.com>
-from __future__ import with_statement
+
 import sys
 
 from cgutils import cgroup
@@ -125,7 +125,7 @@ class Command(command.Command):
     def _print_cgroup(self, cg, indents):
         cg.update()
         if self.args.debug:
-            print(cg.pids)
+            print((cg.pids))
         s = self._build_indent(indents)
         if self.args.color:
             s += decorate(cg.name, 'cgroup')
@@ -139,7 +139,7 @@ class Command(command.Command):
 
     def _print_autogroup(self, autogroup, indents):
         if self.args.debug:
-            print(autogroup.pids)
+            print((autogroup.pids))
         s = self._build_indent(indents)
         if self.args.color:
             s += decorate(autogroup.name, 'autogroup')
@@ -205,12 +205,12 @@ class Command(command.Command):
                 groups[proc.autogroup] = []
             groups[proc.autogroup].append(pid)
 
-        for name, pids in groups.iteritems():
+        for name, pids in groups.items():
             if name is None:
                 # Want to put kthreads at the tail
                 continue
             if self.args.debug:
-                print(name + str(pids))
+                print((name + str(pids)))
             group = AutoGroup(name, pids)
             cont = TreeContainer(group)
             cont.childs = self._build_process_container_tree(group.pids)
@@ -223,8 +223,8 @@ class Command(command.Command):
 
     def run(self):
         if self.args.show_autogroup and self.args.target_subsystem != 'cpu':
-            print("Error: autogroup is meaningless for %s subsystem" %
-                  self.args.target_subsystem)
+            print(("Error: autogroup is meaningless for %s subsystem" %
+                  self.args.target_subsystem))
             sys.exit(1)
 
         root_cgroup = cgroup.scan_cgroups(self.args.target_subsystem)
@@ -250,7 +250,7 @@ class Command(command.Command):
 
             _cgroup.update()
             if self.args.debug:
-                print(_cgroup.pids)
+                print((_cgroup.pids))
 
             if self.args.show_autogroup and container == root_container:
                 # Autogroup is effective only when processes don't belong

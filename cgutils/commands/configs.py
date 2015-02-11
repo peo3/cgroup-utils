@@ -60,7 +60,7 @@ class Command(command.Command):
     }
 
     def _print_configs(self, configs, defaults):
-        for name, val in configs.iteritems():
+        for name, val in configs.items():
             if 'in_bytes' in name:
                 if val == defaults[name]:
                     valstr = ''
@@ -77,14 +77,14 @@ class Command(command.Command):
             else:
                 ratestr = ''
 
-            print("\t%s=%s%s" % (name, valstr, ratestr))
+            print(("\t%s=%s%s" % (name, valstr, ratestr)))
 
     def _collect_changed_configs(self, _cgroup):
         configs = _cgroup.get_configs()
         defaults = _cgroup.get_default_configs()
 
         ret = {}
-        for name, val in configs.iteritems():
+        for name, val in configs.items():
             if defaults[name] != val:
                 ret[name] = val
         return ret
@@ -119,6 +119,6 @@ class Command(command.Command):
             import json
             json.dump(cgroups, sys.stdout, indent=4)
         else:
-            for name, (configs, defaults) in cgroups.iteritems():
+            for name, (configs, defaults) in cgroups.items():
                 print(name)
                 self._print_configs(configs, defaults)

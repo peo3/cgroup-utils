@@ -88,7 +88,7 @@ class CGTopStats:
 
     def get_cgroup_stats(self):
         cgroup_stats = []
-        for cgroup_list in self.cgroups.values():
+        for cgroup_list in list(self.cgroups.values()):
             cpu = mem = bio = None
             pids = []
             for _cgroup in cgroup_list:
@@ -146,8 +146,8 @@ class CGTopStats:
         return cgroup_stats
 
     def __conv_blkio_stats(stats):
-        n_reads = n_writes = 0L
-        for k, v in stats['io_service_bytes'].iteritems():
+        n_reads = n_writes = 0
+        for k, v in stats['io_service_bytes'].items():
             if k == 'Total':
                 continue
             n_reads += v['Read']
@@ -179,13 +179,13 @@ class CGTopStats:
 
     def __calc_delta(current, previous):
         delta = {}
-        for name, value in current.iteritems():
-            if isinstance(value, long):
+        for name, value in current.items():
+            if isinstance(value, int):
                 delta[name] = value - previous[name]
         return delta
 
     _diff = {
-        long: lambda a, b: a - b,
+        int: lambda a, b: a - b,
         int: lambda a, b: a - b,
         float: lambda a, b: a - b,
         dict: __calc_delta,
@@ -205,7 +205,7 @@ class CGTopStats:
 
         removed_group_names = []
         # Read stats from cgroups and calculate deltas
-        for name, cgroup_list in self.cgroups.iteritems():
+        for name, cgroup_list in self.cgroups.items():
             try:
                 for _cgroup in cgroup_list:
                     _cgroup.update()
@@ -442,11 +442,11 @@ class CGTopUI:
         lines = [format(s) for s in cgroup_stats]
 
         if self.options.batch:
-            print debug_msg
-            print self.SUBSYS_TITLE
-            print self.ITEM_TITLE
+            print(debug_msg)
+            print(self.SUBSYS_TITLE)
+            print(self.ITEM_TITLE)
             for l in lines:
-                print l
+                print(l)
             sys.stdout.flush()
             return
 
@@ -472,7 +472,7 @@ class CGTopUI:
 
         rest_lines = self.height - n_lines - int(bool(status_msg))
         num_lines = min(len(lines), rest_lines)
-        for i in xrange(num_lines):
+        for i in range(num_lines):
             try:
                 self.win.insstr(i + n_lines, 0, lines[i].encode('utf-8'))
             except curses.error:
@@ -480,7 +480,7 @@ class CGTopUI:
                 value = '%s win:%s i:%d line:%s' % \
                         (value, self.win.getmaxyx(), i, lines[i])
                 value = str(value).encode('string_escape')
-                raise exc_type, value, traceback
+                raise exc_type(value).with_traceback(traceback)
         if status_msg:
             self.win.insstr(self.height - 1, 0, status_msg, curses.A_BOLD)
         self.win.refresh()
