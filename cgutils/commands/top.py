@@ -30,6 +30,9 @@ from cgutils import host
 from cgutils import formatter
 
 
+if sys.version_info.major == 3:
+    long = int
+
 class CGTopStats:
     SUBSYSTEMS = ['cpuacct', 'blkio', 'memory']
     FILTERS = {
@@ -146,7 +149,7 @@ class CGTopStats:
         return cgroup_stats
 
     def __conv_blkio_stats(stats):
-        n_reads = n_writes = 0
+        n_reads = n_writes = long(0)
         for k, v in stats['io_service_bytes'].items():
             if k == 'Total':
                 continue
@@ -180,12 +183,12 @@ class CGTopStats:
     def __calc_delta(current, previous):
         delta = {}
         for name, value in current.items():
-            if isinstance(value, int):
+            if isinstance(value, long):
                 delta[name] = value - previous[name]
         return delta
 
     _diff = {
-        int: lambda a, b: a - b,
+        long: lambda a, b: a - b,
         int: lambda a, b: a - b,
         float: lambda a, b: a - b,
         dict: __calc_delta,

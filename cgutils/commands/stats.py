@@ -20,6 +20,9 @@ import sys
 from cgutils import cgroup
 from cgutils import command
 
+if sys.version_info.major == 3:
+    long = int
+
 
 class Command(command.Command):
     NAME = 'stats'
@@ -43,7 +46,7 @@ class Command(command.Command):
 
     def _print_stats(self, cgname, stats):
         def print_recursive(name, value, indent):
-            if isinstance(value, int):
+            if isinstance(value, long):
                 if self.args.show_zero or value != 0:
                     return "%s%s=%d\n" % (self._INDENT * indent, name, value)
             elif isinstance(value, list):

@@ -31,6 +31,9 @@ from cgutils import fileops
 from cgutils import formatter
 
 
+if sys.version_info.major == 3:
+    long = int
+
 class Command(command.Command):
     NAME = 'event'
     HELP = 'Wait for an event'
@@ -47,13 +50,13 @@ class Command(command.Command):
 
     def _parse_value(self, val):
         if val[-1] == 'K':
-            return int(val.replace('M', '')) * 1024
+            return long(val.replace('M', '')) * 1024
         elif val[-1] == 'M':
-            return int(val.replace('M', '')) * 1024 * 1024
+            return long(val.replace('M', '')) * 1024 * 1024
         elif val[-1] == 'G':
-            return int(val.replace('M', '')) * 1024 * 1024 * 1024
+            return long(val.replace('M', '')) * 1024 * 1024 * 1024
         else:
-            return int(val)
+            return long(val)
 
     def _show_memory_usage(self, title, _cgroup):
         stats = _cgroup.get_stats()
@@ -78,11 +81,11 @@ class Command(command.Command):
             threshold = self.args.threshold
 
             if threshold[0] == '+':
-                cur = int(fileops.read(target_file))
+                cur = long(fileops.read(target_file))
                 threshold = threshold.replace('+', '')
                 threshold = cur + self._parse_value(threshold)
             elif threshold[0] == '-':
-                cur = int(fileops.read(target_file))
+                cur = long(fileops.read(target_file))
                 threshold = threshold.replace('-', '')
                 threshold = cur - self._parse_value(threshold)
             else:

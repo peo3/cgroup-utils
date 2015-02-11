@@ -15,7 +15,7 @@
 # See the COPYING file for license information.
 #
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
-
+import sys
 import os
 import os.path
 import re
@@ -25,6 +25,10 @@ import errno
 from cgutils import host
 from cgutils import process
 from . import fileops
+
+
+if sys.version_info.major == 3:
+    long = int
 
 
 class SubsystemStatus(dict):
@@ -133,7 +137,7 @@ class SimpleList(list):
     def parse(content):
         ret = []
         for line in content.split('\n')[:-1]:
-            ret.append(int(line))
+            ret.append(long(line))
         return ret
 
 
@@ -143,7 +147,7 @@ class SimpleStat(dict):
         ret = {}
         for line in content.split('\n')[:-1]:
             name, val = line.split(' ')
-            ret[name] = int(val)
+            ret[name] = long(val)
         return ret
 
 
@@ -156,10 +160,10 @@ class BlkioStat(dict):
                 dev, type, val = line.split(' ')
                 if dev not in ret:
                     ret[dev] = {}
-                ret[dev][type] = int(val)
+                ret[dev][type] = long(val)
             elif line.count(' ') == 1:
                 type, val = line.split(' ')
-                ret[type] = int(val)
+                ret[type] = long(val)
             else:
                 raise EnvironmentError(line)
         return ret
@@ -180,10 +184,10 @@ class NumaStat(dict):
             item = {}
             entries = line.split(' ')
             name, value = entries[0].split('=')
-            item['total'] = int(value)
+            item['total'] = long(value)
             for entry in entries[1:]:
                 node, value = entry.split('=')
-                item[node] = int(value)
+                item[node] = long(value)
             ret[name] = item
         return ret
 
@@ -198,7 +202,7 @@ class PercpuStat(dict):
         stats = [stat for stat in stats if stat != '']
         i = 0
         for stat in stats:
-            ret[i] = int(stat)
+            ret[i] = long(stat)
             i += 1
         return ret
 
@@ -223,11 +227,11 @@ class SlabinfoStat(dict):
                 continue
             name = m.group(1)
             ret[name] = {
-                'active_objs': int(m.group(2)),
-                'num_objs': int(m.group(3)),
-                'objsize': int(m.group(4)),
-                'objperslab': int(m.group(5)),
-                'pagesperslab': int(m.group(6)),
+                'active_objs': long(m.group(2)),
+                'num_objs': long(m.group(3)),
+                'objsize': long(m.group(4)),
+                'objperslab': long(m.group(5)),
+                'pagesperslab': long(m.group(6)),
             }
             item = ret[name]
 
@@ -236,9 +240,9 @@ class SlabinfoStat(dict):
             if not m:
                 continue
             item['tunables'] = {
-                'limit': int(m.group(1)),
-                'batchcount': int(m.group(2)),
-                'sharedfactor': int(m.group(3)),
+                'limit': long(m.group(1)),
+                'batchcount': long(m.group(2)),
+                'sharedfactor': long(m.group(3)),
             }
 
             # eg 'slabdata      1      1      0'
@@ -246,9 +250,9 @@ class SlabinfoStat(dict):
             if not m:
                 continue
             item['slabdata'] = {
-                'active_slabs': int(m.group(1)),
-                'num_slabs': int(m.group(2)),
-                'sharedavail': int(m.group(3)),
+                'active_slabs': long(m.group(1)),
+                'num_slabs': long(m.group(2)),
+                'sharedavail': long(m.group(3)),
             }
 
         return ret
@@ -298,8 +302,8 @@ class SubsystemCpu(Subsystem):
     CONFIGS = {
         'shares':        1024,
         # Are the default values correct?
-        'rt_period_us':  int(fileops.read(_path_rt_period)),
-        'rt_runtime_us': int(fileops.read(_path_rt_runtime)),
+        'rt_period_us':  long(fileops.read(_path_rt_period)),
+        'rt_runtime_us': long(fileops.read(_path_rt_runtime)),
         'cfs_period_us': 100000,
         'cfs_quota_us': -1,
     }
@@ -308,7 +312,7 @@ class SubsystemCpu(Subsystem):
 class SubsystemCpuacct(Subsystem):
     NAME = 'cpuacct'
     STATS = {
-        'usage': int,
+        'usage': long,
         'stat': SimpleStat,
         'usage_percpu': PercpuStat,
     }
@@ -317,7 +321,7 @@ class SubsystemCpuacct(Subsystem):
 class SubsystemCpuset(Subsystem):
     NAME = 'cpuset'
     STATS = {
-        'memory_pressure': int,
+        'memory_pressure': long,
     }
     CONFIGS = {
         'cpu_exclusive': 0,
@@ -345,20 +349,20 @@ class SubsystemCpuset(Subsystem):
 class SubsystemMemory(Subsystem):
     NAME = 'memory'
     STATS = {
-        'failcnt': int,
-        'usage_in_bytes': int,
-        'max_usage_in_bytes': int,
-        'memsw.failcnt': int,
-        'memsw.max_usage_in_bytes': int,
-        'memsw.usage_in_bytes': int,
+        'failcnt': long,
+        'usage_in_bytes': long,
+        'max_usage_in_bytes': long,
+        'memsw.failcnt': long,
+        'memsw.max_usage_in_bytes': long,
+        'memsw.usage_in_bytes': long,
         'stat': SimpleStat,
         'numa_stat': NumaStat,
-        'kmem.tcp.failcnt': int,
-        'kmem.tcp.max_usage_in_bytes': int,
-        'kmem.tcp.usage_in_bytes': int,
-        'kmem.failcnt': int,
-        'kmem.max_usage_in_bytes': int,
-        'kmem.usage_in_bytes': int,
+        'kmem.tcp.failcnt': long,
+        'kmem.tcp.max_usage_in_bytes': long,
+        'kmem.tcp.usage_in_bytes': long,
+        'kmem.failcnt': long,
+        'kmem.max_usage_in_bytes': long,
+        'kmem.usage_in_bytes': long,
         'kmem.slabinfo': SlabinfoStat,
     }
     MAX_ULONGLONG = 2 ** 63 - 1
@@ -416,8 +420,8 @@ class SubsystemFreezer(Subsystem):
     NAME = 'freezer'
     STATS = {
         'state': str,
-        'parent_freezing': int,
-        'self_freezing': int,
+        'parent_freezing': long,
+        'self_freezing': long,
     }
 
 
@@ -442,7 +446,7 @@ class SubsystemDevices(Subsystem):
 class SubsystemNetPrio(Subsystem):
     NAME = 'net_prio'
     STATS = {
-        'prioidx': int,
+        'prioidx': long,
     }
     __ifs = os.listdir('/sys/class/net')
     CONFIGS = {
@@ -457,9 +461,9 @@ class SubsystemHugetlb(Subsystem):
     # different size of HugeTLB on other architectures.
     __SIZE = '2MB'
     STATS = {
-        __SIZE + '.failcnt': int,
-        __SIZE + '.max_usage_in_bytes': int,
-        __SIZE + '.usage_in_bytes': int,
+        __SIZE + '.failcnt': long,
+        __SIZE + '.max_usage_in_bytes': long,
+        __SIZE + '.usage_in_bytes': long,
     }
     CONFIGS = {
         __SIZE + '.limit_in_bytes': MAX_ULONGLONG,
@@ -533,7 +537,7 @@ class CGroup:
     }
     _PARSERS = {
         int: lambda content: int(content),
-        int: lambda content: int(content),
+        long: lambda content: long(content),
         str: lambda content: content.strip(),
         SimpleList: SimpleList.parse,
         SimpleStat: SimpleStat.parse,
@@ -762,7 +766,7 @@ class EventListener:
         target_name = self.target_name
         if target_name in ['memory.usage_in_bytes', 'memory.memsw.usage_in_bytes']:
             threshold = arguments[0]
-            line = "%d %d %d\0" % (self.event_fd, self.target_fd, int(threshold))
+            line = "%d %d %d\0" % (self.event_fd, self.target_fd, long(threshold))
         else:
             line = "%d %d\0" % (self.event_fd, self.target_fd)
         os.write(self.ec_fd, line)
