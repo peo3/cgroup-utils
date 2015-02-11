@@ -69,7 +69,7 @@ def test(cmdline, opts):
         print(_cmdline)
     try:
         execute(_cmdline)
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
         #print('')
         #print(e)
         error_outputs.append(str(e))

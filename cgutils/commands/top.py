@@ -65,7 +65,7 @@ class CGTopStats:
             try:
                 root_cgroup = cgroup.scan_cgroups(name, self.FILTERS[name])
                 cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
-            except EnvironmentError, e:
+            except EnvironmentError as e:
                 # Don't annoy users by showing error messages
                 pass
         self.cgroups = cgroups
@@ -214,7 +214,7 @@ class CGTopStats:
                         print(stats)
                     stats = self._convert[_cgroup.subsystem.name](stats)
                     self._update_delta(_cgroup, stats)
-            except IOError, e:
+            except IOError as e:
                 if e.args and e.args[0] == errno.ENOENT:
                     removed_group_names.append(name)
 
@@ -330,7 +330,7 @@ class CGTopUI:
 
             try:
                 events = poll.poll(self.options.delay_seconds * 1000.0)
-            except select.error, e:
+            except select.error as e:
                 if e.args and e.args[0] == errno.EINTR:
                     events = 0
                 else:

@@ -635,7 +635,7 @@ class CGroup:
             if os.path.exists(path):
                 try:
                     configs[name] = self._PARSERS[cls](fileops.read(path))
-                except IOError, e:
+                except IOError as e:
                     if e.errno == errno.EOPNOTSUPP:
                         # Since 3.5 memory.memsw.* are always created even if disabled.
                         # If disabled we will get EOPNOTSUPP when read or write them.
@@ -663,7 +663,7 @@ class CGroup:
             if os.path.exists(path):
                 try:
                     stats[name] = self._PARSERS[cls](fileops.read(path))
-                except IOError, e:
+                except IOError as e:
                     # XXX: we have to distinguish unexpected errors from the expected ones
                     if e.errno == errno.EOPNOTSUPP:
                         # Since 3.5 memory.memsw.* are always created even if disabled.
