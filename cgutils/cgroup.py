@@ -777,7 +777,7 @@ class EventListener:
 
 
 def _scan_cgroups_recursive(subsystem, fullpath, mount_point, filters):
-    cgroup = CGroup(subsystem, fullpath, filters)
+    cgroup = CGroup(subsystem, fullpath=fullpath, filters=filters)
 
     _childs = []
     for _file in os.listdir(fullpath):
