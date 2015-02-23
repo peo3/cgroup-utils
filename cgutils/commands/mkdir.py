@@ -37,7 +37,7 @@ class Command(command.Command):
 
     def run(self):
         if self.args.debug:
-            print args
+            print(args)
 
         parent_path = os.path.dirname(self.args.target_dir)
         new = os.path.basename(self.args.target_dir)

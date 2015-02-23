@@ -20,6 +20,9 @@ import sys
 from cgutils import cgroup
 from cgutils import command
 
+if sys.version_info.major == 3:
+    long = int
+
 
 class Command(command.Command):
     NAME = 'stats'
@@ -54,7 +57,7 @@ class Command(command.Command):
                                           ', '.join(values))
             elif isinstance(value, dict):
                 ret = ''
-                for n, v in value.iteritems():
+                for n, v in value.items():
                     ret += print_recursive(n, v, indent + 1)
                 if ret:
                     return "%s%s:\n" % (self._INDENT * indent, name) + ret
@@ -62,7 +65,8 @@ class Command(command.Command):
 
         ret = print_recursive(cgname, stats, 0)
         if ret:
-            print ret,
+            # XXX python3: print(ret, end=' ') doesn't work on python2
+            sys.stdout.write(ret)
 
     def run(self):
         root_cgroup = cgroup.scan_cgroups(self.args.target_subsystem)
@@ -82,5 +86,5 @@ class Command(command.Command):
             import json
             json.dump(cgroups, sys.stdout, indent=4)
         else:
-            for cgname, stats in cgroups.iteritems():
+            for cgname, stats in cgroups.items():
                 self._print_stats(cgname, stats)

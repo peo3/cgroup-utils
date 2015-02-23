@@ -15,7 +15,7 @@
 # See the COPYING file for license information.
 #
 # Copyright (c) 2012,2013 peo3 <peo314159265@gmail.com>
-from __future__ import with_statement
+
 import os
 import os.path
 

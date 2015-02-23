@@ -15,7 +15,7 @@
 # See the COPYING file for license information.
 #
 # Copyright (c) 2011-2013 peo3 <peo314159265@gmail.com>
-from __future__ import with_statement
+
 import sys
 
 from cgutils import cgroup
@@ -205,7 +205,7 @@ class Command(command.Command):
                 groups[proc.autogroup] = []
             groups[proc.autogroup].append(pid)
 
-        for name, pids in groups.iteritems():
+        for name, pids in groups.items():
             if name is None:
                 # Want to put kthreads at the tail
                 continue

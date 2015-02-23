@@ -30,6 +30,9 @@ from cgutils import host
 from cgutils import formatter
 
 
+if sys.version_info.major == 3:
+    long = int
+
 class CGTopStats:
     SUBSYSTEMS = ['cpuacct', 'blkio', 'memory']
     FILTERS = {
@@ -65,7 +68,7 @@ class CGTopStats:
             try:
                 root_cgroup = cgroup.scan_cgroups(name, self.FILTERS[name])
                 cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
-            except EnvironmentError, e:
+            except EnvironmentError as e:
                 # Don't annoy users by showing error messages
                 pass
         self.cgroups = cgroups
@@ -88,7 +91,7 @@ class CGTopStats:
 
     def get_cgroup_stats(self):
         cgroup_stats = []
-        for cgroup_list in self.cgroups.values():
+        for cgroup_list in list(self.cgroups.values()):
             cpu = mem = bio = None
             pids = []
             for _cgroup in cgroup_list:
@@ -146,8 +149,8 @@ class CGTopStats:
         return cgroup_stats
 
     def __conv_blkio_stats(stats):
-        n_reads = n_writes = 0L
-        for k, v in stats['io_service_bytes'].iteritems():
+        n_reads = n_writes = long(0)
+        for k, v in stats['io_service_bytes'].items():
             if k == 'Total':
                 continue
             n_reads += v['Read']
@@ -179,7 +182,7 @@ class CGTopStats:
 
     def __calc_delta(current, previous):
         delta = {}
-        for name, value in current.iteritems():
+        for name, value in current.items():
             if isinstance(value, long):
                 delta[name] = value - previous[name]
         return delta
@@ -205,7 +208,7 @@ class CGTopStats:
 
         removed_group_names = []
         # Read stats from cgroups and calculate deltas
-        for name, cgroup_list in self.cgroups.iteritems():
+        for name, cgroup_list in self.cgroups.items():
             try:
                 for _cgroup in cgroup_list:
                     _cgroup.update()
@@ -214,7 +217,7 @@ class CGTopStats:
                         print(stats)
                     stats = self._convert[_cgroup.subsystem.name](stats)
                     self._update_delta(_cgroup, stats)
-            except IOError, e:
+            except IOError as e:
                 if e.args and e.args[0] == errno.ENOENT:
                     removed_group_names.append(name)
 
@@ -330,7 +333,7 @@ class CGTopUI:
 
             try:
                 events = poll.poll(self.options.delay_seconds * 1000.0)
-            except select.error, e:
+            except select.error as e:
                 if e.args and e.args[0] == errno.EINTR:
                     events = 0
                 else:
@@ -442,11 +445,11 @@ class CGTopUI:
         lines = [format(s) for s in cgroup_stats]
 
         if self.options.batch:
-            print debug_msg
-            print self.SUBSYS_TITLE
-            print self.ITEM_TITLE
+            print(debug_msg)
+            print(self.SUBSYS_TITLE)
+            print(self.ITEM_TITLE)
             for l in lines:
-                print l
+                print(l)
             sys.stdout.flush()
             return
 
@@ -472,7 +475,7 @@ class CGTopUI:
 
         rest_lines = self.height - n_lines - int(bool(status_msg))
         num_lines = min(len(lines), rest_lines)
-        for i in xrange(num_lines):
+        for i in range(num_lines):
             try:
                 self.win.insstr(i + n_lines, 0, lines[i].encode('utf-8'))
             except curses.error:
@@ -480,7 +483,7 @@ class CGTopUI:
                 value = '%s win:%s i:%d line:%s' % \
                         (value, self.win.getmaxyx(), i, lines[i])
                 value = str(value).encode('string_escape')
-                raise exc_type, value, traceback
+                raise exc_type(value).with_traceback(traceback)
         if status_msg:
             self.win.insstr(self.height - 1, 0, status_msg, curses.A_BOLD)
         self.win.refresh()

@@ -15,7 +15,7 @@
 # See the COPYING file for license information.
 #
 # Copyright (c) 2011,2012 peo3 <peo314159265@gmail.com>
-
+import sys
 import os
 import os.path
 import re
@@ -24,7 +24,11 @@ import errno
 
 from cgutils import host
 from cgutils import process
-import fileops
+from . import fileops
+
+
+if sys.version_info.major == 3:
+    long = int
 
 
 class SubsystemStatus(dict):
@@ -115,14 +119,14 @@ class SubsystemStatus(dict):
         self._update()
 
     def get_all(self):
-        return self.keys()
+        return list(self.keys())
 
     def get_available(self):
-        return [name for name in self.keys()
+        return [name for name in list(self.keys())
                 if self[name]['enabled']]
 
     def get_enabled(self):
-        return self.paths.keys()
+        return list(self.paths.keys())
 
     def get_path(self, subsys):
         return self.paths[subsys]
@@ -446,7 +450,7 @@ class SubsystemNetPrio(Subsystem):
     }
     __ifs = os.listdir('/sys/class/net')
     CONFIGS = {
-        'ifpriomap': SimpleStat(zip(__ifs, [0] * len(__ifs))),
+        'ifpriomap': SimpleStat(list(zip(__ifs, [0] * len(__ifs)))),
     }
 
 
@@ -494,11 +498,11 @@ def _get_subsystem(name):
     return _subsystem_name2class[name]()
 
 
-class NoSuchControlFileError(StandardError):
+class NoSuchControlFileError(Exception):
     pass
 
 
-class IsRootGroupError(StandardError):
+class IsRootGroupError(Exception):
     pass
 
 
@@ -577,9 +581,9 @@ class CGroup:
             self.parent = get_cgroup(os.path.dirname(self.fullpath))
 
         self.paths = {}
-        for file in self._STATS.keys() + self._CONFIGS.keys() + self._CONTROLS.keys():
+        for file in list(self._STATS.keys()) + list(self._CONFIGS.keys()) + list(self._CONTROLS.keys()):
             self.paths[file] = os.path.join(self.fullpath, file)
-        for file in subsystem.STATS.keys() + subsystem.CONFIGS.keys() + subsystem.CONTROLS.keys():
+        for file in list(subsystem.STATS.keys()) + list(subsystem.CONFIGS.keys()) + list(subsystem.CONTROLS.keys()):
             self.paths[file] = os.path.join(self.fullpath, subsystem.name + '.' + file)
 
         self.configs = {}
@@ -629,13 +633,13 @@ class CGroup:
         which are categorised in the configs group.
         """
         configs = {}
-        for name, default in self.configs.iteritems():
+        for name, default in self.configs.items():
             cls = default.__class__
             path = self.paths[name]
             if os.path.exists(path):
                 try:
                     configs[name] = self._PARSERS[cls](fileops.read(path))
-                except IOError, e:
+                except IOError as e:
                     if e.errno == errno.EOPNOTSUPP:
                         # Since 3.5 memory.memsw.* are always created even if disabled.
                         # If disabled we will get EOPNOTSUPP when read or write them.
@@ -658,12 +662,12 @@ class CGroup:
         which are categorised in the stats group.
         """
         stats = {}
-        for name, cls in self.stats.iteritems():
+        for name, cls in self.stats.items():
             path = self.paths[name]
             if os.path.exists(path):
                 try:
                     stats[name] = self._PARSERS[cls](fileops.read(path))
-                except IOError, e:
+                except IOError as e:
                     # XXX: we have to distinguish unexpected errors from the expected ones
                     if e.errno == errno.EOPNOTSUPP:
                         # Since 3.5 memory.memsw.* are always created even if disabled.
@@ -693,7 +697,7 @@ class CGroup:
         new = get_cgroup(new_path)
         if set_initparams:
             params = self.subsystem.get_init_parameters(self.get_configs())
-            for filename, value in params.iteritems():
+            for filename, value in params.items():
                 new.set_config(filename, value)
         return new
 
@@ -793,7 +797,7 @@ def _scan_cgroups_recursive(subsystem, fullpath, mount_point, filters):
 #
 #  Public APIs
 #
-class NoSuchSubsystemError(StandardError):
+class NoSuchSubsystemError(Exception):
     pass
 
 
@@ -837,11 +841,11 @@ def get_cgroup(fullpath):
 
     status = SubsystemStatus()
     name = None
-    for name, path in status.paths.iteritems():
+    for name, path in status.paths.items():
         if path in fullpath:
             break
     else:
-        raise StandardError('Invalid path: ' + fullpath)
+        raise Exception('Invalid path: ' + fullpath)
     subsys = _get_subsystem(name)
 
     return CGroup(subsys, fullpath)

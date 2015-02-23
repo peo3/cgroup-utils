@@ -18,7 +18,7 @@
 #
 # Copyright (c) 2012,2013 peo3 <peo314159265@gmail.com>
 #
-from __future__ import with_statement
+
 import sys
 import os
 import os.path
@@ -30,6 +30,9 @@ from cgutils import command
 from cgutils import fileops
 from cgutils import formatter
 
+
+if sys.version_info.major == 3:
+    long = int
 
 class Command(command.Command):
     NAME = 'event'
@@ -58,14 +61,14 @@ class Command(command.Command):
     def _show_memory_usage(self, title, _cgroup):
         stats = _cgroup.get_stats()
         usage = stats['usage_in_bytes']
-        print "%s: %d (%s)" % (title, usage, formatter.byte(usage))
+        print("%s: %d (%s)" % (title, usage, formatter.byte(usage)))
         if 'memsw.usage_in_bytes' in stats:
             usage = stats['memsw.usage_in_bytes']
-            print "%s(memsw): %d (%s)" % (title, usage, formatter(usage))
+            print("%s(memsw): %d (%s)" % (title, usage, formatter(usage)))
 
     def run(self):
         if not os.path.exists(self.args.target_file):
-            print "File not found: %s" % self.args.target_file
+            print("File not found: %s" % self.args.target_file)
             sys.exit(1)
         target_file = self.args.target_file
 
@@ -89,7 +92,7 @@ class Command(command.Command):
                 threshold = self._parse_value(threshold)
 
             if self.args.verbose:
-                print "Threshold: %d (%s)" % (threshold, formatter.byte(threshold))
+                print("Threshold: %d (%s)" % (threshold, formatter.byte(threshold)))
 
             arguments.append(threshold)
 
