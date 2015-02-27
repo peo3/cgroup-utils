@@ -390,15 +390,23 @@ class SubsystemBlkio(Subsystem):
     NAME = 'blkio'
     STATS = {
         'io_merged': BlkioStat,
+        'io_merged_recursive': BlkioStat,
         'io_queued': BlkioStat,
+        'io_queued_recursive': BlkioStat,
         'io_service_bytes': BlkioStat,
+        'io_service_bytes_recursive': BlkioStat,
         'io_service_time': BlkioStat,
+        'io_service_time_recursive': BlkioStat,
         'io_serviced': BlkioStat,
+        'io_serviced_recursive': BlkioStat,
         'io_wait_time': BlkioStat,
+        'io_wait_time_recursive': BlkioStat,
         'sectors': SimpleStat,
+        'sectors_recursive': SimpleStat,
         'throttle.io_service_bytes': BlkioStat,
         'throttle.io_serviced': BlkioStat,
         'time': SimpleStat,
+        'time_recursive': SimpleStat,
         # Debugging files (Appeared only CONFIG_DEBUG_BLK_CGROUP=y)
         'avg_queue_size': BlkioStat,
         'dequeue': BlkioStat,
@@ -408,6 +416,8 @@ class SubsystemBlkio(Subsystem):
         'unaccounted_time': BlkioStat,
     }
     CONFIGS = {
+        'leaf_weight': 1000,
+        'leaf_weight_device': SimpleStat({}),
         'throttle.read_iops_device': SimpleStat({}),
         'throttle.write_iops_device': SimpleStat({}),
         'throttle.read_bps_device': SimpleStat({}),
