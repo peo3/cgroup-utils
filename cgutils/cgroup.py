@@ -782,7 +782,7 @@ class EventListener:
         if target_name in ['memory.usage_in_bytes', 'memory.memsw.usage_in_bytes']:
             threshold = arguments[0]
             line = "%d %d %d\0" % (self.event_fd, self.target_fd, long(threshold))
-        elif target_name in ['memory.pressure_level',]:
+        elif target_name in ['memory.pressure_level']:
             threshold = arguments[0]
             line = "%d %d %s\0" % (self.event_fd, self.target_fd, threshold)
         os.write(self.ec_fd, line)
