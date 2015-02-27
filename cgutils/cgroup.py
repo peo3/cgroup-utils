@@ -382,6 +382,7 @@ class SubsystemMemory(Subsystem):
     }
     CONTROLS = {
         'force_empty': None,
+        'pressure_level': None,
     }
 
 
@@ -738,6 +739,7 @@ class EventListener:
         'memory.usage_in_bytes',
         'memory.oom_control',
         'memory.memsw.usage_in_bytes',
+        'memory.pressure_level',
     ]
 
     def __init__(self, cgroup, target_name):
@@ -770,8 +772,9 @@ class EventListener:
         if target_name in ['memory.usage_in_bytes', 'memory.memsw.usage_in_bytes']:
             threshold = arguments[0]
             line = "%d %d %d\0" % (self.event_fd, self.target_fd, long(threshold))
-        else:
-            line = "%d %d\0" % (self.event_fd, self.target_fd)
+        elif target_name in ['memory.pressure_level',]:
+            threshold = arguments[0]
+            line = "%d %d %s\0" % (self.event_fd, self.target_fd, threshold)
         os.write(self.ec_fd, line)
 
     def wait(self):

@@ -100,6 +100,15 @@ class Command(command.Command):
             if self.args.threshold:
                 self.parser.error('Too many arguments: ' + ' '.join(self.args))
 
+        elif target_name == 'memory.pressure_level':
+            SUPPORTED_TERMS = ['low', 'medium', 'critical']
+            if not self.args.threshold:
+                self.parser.error('Less arguments: ' + ' '.join(self.args))
+            if self.args.threshold not in SUPPORTED_TERMS:
+                self.parser.error('Use one of %p' % SUPPORTED_TERMS)
+
+            arguments.append(self.args.threshold)
+
         else:
             files = ', '.join(cgroup.EventListener.SUPPORTED_FILES)
             message = "Target file not supported: %s\n" % target_name
