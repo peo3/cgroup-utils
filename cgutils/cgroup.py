@@ -321,11 +321,14 @@ class SubsystemCpuacct(Subsystem):
 class SubsystemCpuset(Subsystem):
     NAME = 'cpuset'
     STATS = {
+        # str object something like '0', '0-1', and '0-1,3,4'
+        'effective_cpus': str,
+        'effective_mems': str,
         'memory_pressure': long,
     }
     CONFIGS = {
         'cpu_exclusive': 0,
-        # str object something like '0', '0-1', and '0-1,3,4'
+        # same as 'effective_*' ones
         'cpus': host.CPUInfo().get_online(),
         'mem_exclusive': 0,
         'mem_hardwall': 0,
