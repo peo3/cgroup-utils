@@ -321,11 +321,14 @@ class SubsystemCpuacct(Subsystem):
 class SubsystemCpuset(Subsystem):
     NAME = 'cpuset'
     STATS = {
+        # str object something like '0', '0-1', and '0-1,3,4'
+        'effective_cpus': str,
+        'effective_mems': str,
         'memory_pressure': long,
     }
     CONFIGS = {
         'cpu_exclusive': 0,
-        # str object something like '0', '0-1', and '0-1,3,4'
+        # same as 'effective_*' ones
         'cpus': host.CPUInfo().get_online(),
         'mem_exclusive': 0,
         'mem_hardwall': 0,
@@ -379,6 +382,7 @@ class SubsystemMemory(Subsystem):
     }
     CONTROLS = {
         'force_empty': None,
+        'pressure_level': None,
     }
 
 
@@ -386,15 +390,23 @@ class SubsystemBlkio(Subsystem):
     NAME = 'blkio'
     STATS = {
         'io_merged': BlkioStat,
+        'io_merged_recursive': BlkioStat,
         'io_queued': BlkioStat,
+        'io_queued_recursive': BlkioStat,
         'io_service_bytes': BlkioStat,
+        'io_service_bytes_recursive': BlkioStat,
         'io_service_time': BlkioStat,
+        'io_service_time_recursive': BlkioStat,
         'io_serviced': BlkioStat,
+        'io_serviced_recursive': BlkioStat,
         'io_wait_time': BlkioStat,
+        'io_wait_time_recursive': BlkioStat,
         'sectors': SimpleStat,
+        'sectors_recursive': SimpleStat,
         'throttle.io_service_bytes': BlkioStat,
         'throttle.io_serviced': BlkioStat,
         'time': SimpleStat,
+        'time_recursive': SimpleStat,
         # Debugging files (Appeared only CONFIG_DEBUG_BLK_CGROUP=y)
         'avg_queue_size': BlkioStat,
         'dequeue': BlkioStat,
@@ -404,6 +416,8 @@ class SubsystemBlkio(Subsystem):
         'unaccounted_time': BlkioStat,
     }
     CONFIGS = {
+        'leaf_weight': 1000,
+        'leaf_weight_device': SimpleStat({}),
         'throttle.read_iops_device': SimpleStat({}),
         'throttle.write_iops_device': SimpleStat({}),
         'throttle.read_bps_device': SimpleStat({}),
@@ -735,6 +749,7 @@ class EventListener:
         'memory.usage_in_bytes',
         'memory.oom_control',
         'memory.memsw.usage_in_bytes',
+        'memory.pressure_level',
     ]
 
     def __init__(self, cgroup, target_name):
@@ -767,6 +782,9 @@ class EventListener:
         if target_name in ['memory.usage_in_bytes', 'memory.memsw.usage_in_bytes']:
             threshold = arguments[0]
             line = "%d %d %d\0" % (self.event_fd, self.target_fd, long(threshold))
+        elif target_name in ['memory.pressure_level']:
+            threshold = arguments[0]
+            line = "%d %d %s\0" % (self.event_fd, self.target_fd, threshold)
         else:
             line = "%d %d\0" % (self.event_fd, self.target_fd)
         os.write(self.ec_fd, line)
