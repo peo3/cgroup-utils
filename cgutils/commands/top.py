@@ -53,6 +53,7 @@ class CGTopStats:
         self.deltas['time'] = 0
 
         self.cgroups = {}
+        self.nosubsys_warning_showed = {}
         self._update_cgroups()
         self.last_update_cgroups = time.time()
 
@@ -70,6 +71,14 @@ class CGTopStats:
                 cgroup.walk_cgroups(root_cgroup, collect_by_name, cgroups)
             except EnvironmentError as e:
                 # Don't annoy users by showing error messages
+                pass
+            except cgroup.NoSuchSubsystemError as e:
+                # Some systems don't support all subsystems, for example
+                # Parallels Cloud Server and OpenVZ may not have memory subsystem.
+                if name not in self.nosubsys_warning_showed:
+                    print(e)
+                    time.sleep(1)
+                    self.nosubsys_warning_showed[name] = True
                 pass
         self.cgroups = cgroups
 
