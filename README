@@ -186,7 +186,7 @@ Example outputs
 Supported Linux Version
 =======================
 
-3.8.y
+3.18.y
 
 Supported subsystems
 --------------------
@@ -200,6 +200,13 @@ Supported subsystems
 -  memory
 -  net\_cls
 -  net\_prio
+
+Supported Python
+================
+
+-  python2: 2.6 and above
+-  python3: 3.4 and above
+-  3.0 to 3.3 may work but not tested
 
 License
 =======
