@@ -79,7 +79,6 @@ class CGTopStats:
                     print(e)
                     time.sleep(1)
                     self.nosubsys_warning_showed[name] = True
-                pass
         self.cgroups = cgroups
 
         if self.options.hide_root:
