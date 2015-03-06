@@ -1,5 +1,12 @@
 #Changelog
 
+##0.6
+
+- Support new control files added between Linux 3.9 and 3.18
+- Support Python 3
+- Drop Python 2.5 support
+- Fix several bugs. Thanks lebauce and pavel-odintsov!
+
 ##0.5
 
 - Support hugetlb subsystem
