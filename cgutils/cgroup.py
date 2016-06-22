@@ -484,6 +484,16 @@ class SubsystemHugetlb(Subsystem):
     }
 
 
+class SubsystemPids(Subsystem):
+    NAME = 'pids'
+    STATS = {
+        'current': long,
+    }
+    CONFIGS = {
+        'max': 'max',
+    }
+
+
 class SubsystemName(Subsystem):
     NAME = 'name'
 
@@ -503,6 +513,7 @@ _subsystem_name2class = {
     'devices': SubsystemDevices,
     'net_prio': SubsystemNetPrio,
     'hugetlb': SubsystemHugetlb,
+    'pids': SubsystemPids,
 }
 
 
