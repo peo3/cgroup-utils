@@ -145,7 +145,7 @@ This command shows you tree structure of cgroups.
 
 #Supported Linux Version
 
-3.18.y
+4.6.y
 
 ##Supported subsystems
 
@@ -158,6 +158,7 @@ This command shows you tree structure of cgroups.
 - memory
 - net\_cls
 - net\_prio
+- pids
 
 #Supported Python
 

@@ -1,5 +1,8 @@
 #Changelog
 
+##0.7
+- Support PID subsystem
+
 ##0.6
 
 - Support new control files added between Linux 3.9 and 3.18
