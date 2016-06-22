@@ -33,6 +33,7 @@ from cgutils import formatter
 if sys.version_info.major == 3:
     long = int
 
+
 class CGTopStats:
     SUBSYSTEMS = ['cpuacct', 'blkio', 'memory']
     FILTERS = {

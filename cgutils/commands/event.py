@@ -34,6 +34,7 @@ from cgutils import formatter
 if sys.version_info.major == 3:
     long = int
 
+
 class Command(command.Command):
     NAME = 'event'
     HELP = 'Wait for an event'
@@ -125,7 +126,7 @@ class Command(command.Command):
             listener = cgroup.EventListener(cg, target_name)
             listener.register(arguments)
 
-            #ret = listener.wait()
+            # ret = listener.wait()
             listener.wait()
             os._exit(0)
 

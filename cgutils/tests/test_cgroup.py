@@ -189,7 +189,7 @@ mm_struct             18     18    896   18    4 : tunables    0    0    0 : sla
         },
     }
 
-    #import pprint
-    #pprint.pprint(cgroup.SlabinfoStat.parse(input))
-    #pprint.pprint(expected)
+    # import pprint
+    # pprint.pprint(cgroup.SlabinfoStat.parse(input))
+    # pprint.pprint(expected)
     assert cgroup.SlabinfoStat.parse(input) == expected

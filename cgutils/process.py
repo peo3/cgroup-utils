@@ -62,7 +62,7 @@ class Process(object):
             else:
                 name = args[0]
         else:
-            #args = [cmdline,]
+            # args = [cmdline,]
             args = cmdline.split(' ')
             name = args[0]
         if name[0] == '/':
