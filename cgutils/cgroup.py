@@ -207,6 +207,28 @@ class PercpuStat(dict):
         return ret
 
 
+class CpuacctUsageAllStat(dict):
+    @staticmethod
+    def parse(content):
+        # cpu user system
+        # 0 26703258962 1612927964
+        # 1 37879159293 1963003474
+
+        ret = {}
+        lines = content.split('\n')
+        header = lines.pop(0)
+        if header != "cpu user system":
+            raise EnvironmentError("Invalid header: %s" % header)
+
+        # A line may end with a redundant space
+        lines = [line for line in lines if line != '']
+
+        for line in lines:
+            cpuid, user, system = line.split(' ')
+            ret[int(cpuid)] = (long(user), long(system))
+        return ret
+
+
 class SlabinfoStat(dict):
     def __parse_version_2_1(lines):
         # Drop legend '# name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> : tunables <limit> <batchcount> <sharedfactor> : slabdata <active_slabs> <num_slabs> <sharedavail>'
@@ -314,7 +336,12 @@ class SubsystemCpuacct(Subsystem):
     STATS = {
         'usage': long,
         'stat': SimpleStat,
-        'usage_percpu': PercpuStat,
+        'usage_all': CpuacctUsageAllStat,
+        'usage_sys':  long,
+        'usage_user': long,
+        'usage_percpu':      PercpuStat,
+        'usage_percpu_sys':  PercpuStat,
+        'usage_percpu_user': PercpuStat,
     }
 
 
@@ -571,6 +598,7 @@ class CGroup:
         NumaStat: NumaStat.parse,
         PercpuStat: PercpuStat.parse,
         SlabinfoStat: SlabinfoStat.parse,
+        CpuacctUsageAllStat: CpuacctUsageAllStat.parse,
     }
 
     def _calc_depth(self, path):
