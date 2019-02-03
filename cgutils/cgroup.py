@@ -270,7 +270,7 @@ class SlabinfoStat(dict):
         if m:
             return SlabinfoStat._PARSERS[m.group(1)](lines)
         else:
-            raise EnvironmentError('No header found in memory.kmem.slabinfo')
+            return None
 
 
 #
