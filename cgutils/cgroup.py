@@ -293,6 +293,18 @@ class SlabinfoStat(dict):
             return None
 
 
+class PidsEventsStat(dict):
+    @staticmethod
+    def parse(content):
+        ret = {}
+        lines = content.split('\n')
+        lines.remove('')
+        for line in lines:
+            name, val = line.split(' ')
+            ret[name] = long(val)
+        return ret
+
+
 #
 # The base class of subsystems
 #
@@ -515,6 +527,7 @@ class SubsystemPids(Subsystem):
     NAME = 'pids'
     STATS = {
         'current': long,
+        'events': PidsEventsStat,
     }
     CONFIGS = {
         'max': 'max',
@@ -599,6 +612,7 @@ class CGroup:
         PercpuStat: PercpuStat.parse,
         SlabinfoStat: SlabinfoStat.parse,
         CpuacctUsageAllStat: CpuacctUsageAllStat.parse,
+        PidsEventsStat: PidsEventsStat.parse,
     }
 
     def _calc_depth(self, path):
