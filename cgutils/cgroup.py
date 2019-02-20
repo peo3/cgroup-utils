@@ -219,9 +219,7 @@ class CpuacctUsageAllStat(dict):
         header = lines.pop(0)
         if header != "cpu user system":
             raise EnvironmentError("Invalid header: %s" % header)
-
-        # A line may end with a redundant space
-        lines = [line for line in lines if line != '']
+        lines.remove('')
 
         for line in lines:
             cpuid, user, system = line.split(' ')
@@ -432,6 +430,8 @@ class SubsystemBlkio(Subsystem):
         'sectors_recursive': SimpleStat,
         'throttle.io_service_bytes': BlkioStat,
         'throttle.io_serviced': BlkioStat,
+        'throttle.io_service_bytes_recursive': BlkioStat,
+        'throttle.io_serviced_recursive': BlkioStat,
         'time': SimpleStat,
         'time_recursive': SimpleStat,
         # Debugging files (Appeared only CONFIG_DEBUG_BLK_CGROUP=y)
