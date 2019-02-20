@@ -1,9 +1,9 @@
-#What is cgroup-utils?
+# What is cgroup-utils?
 
 cgroup-utils provides utility tools and libraries for control groups of Linux.
 For example, cgutil top is a top-like tool which shows activities of running processes in control groups.
 
-#Installation
+# Installation
 
 ## For users
 
@@ -16,11 +16,11 @@ For example, cgutil top is a top-like tool which shows activities of running pro
     $ python setup.py build
     $ sudo python setup.py install
 
-###Packaging (rpm)
+### Packaging (rpm)
 
     $ python setup.py bdist --formats=rpm
 
-#Available commands
+# Available commands
 
 - configs
 - event
@@ -31,12 +31,12 @@ For example, cgutil top is a top-like tool which shows activities of running pro
 - top
 - tree
 
-##cgutil configs
+## cgutil configs
 
 This command show you configurations of cgroups.
 By default, it shows only changed configurations.
 
-###Example output
+### Example output
 
     $ cgutil configs -o memory
     <root>
@@ -49,22 +49,22 @@ By default, it shows only changed configurations.
     	swappiness=100
     	notify_on_release=1
 
-##cgutil event
+## cgutil event
 
 This command makes cgroup.event\_control easy to use.
 It exits when a state of a target cgroup crosses a threshold which you set,
 thus, you can know the state of the cgroup has changed.
 
-###Example output
+### Example output
 
     $ cgutil event /sys/fs/cgroup/memory/system/sshd.service/memory.usage_in_bytes +1M
     $ # It exits when memory usage of processes in the cgroup has increased one more MB.
 
-##cgutil pgrep
+## cgutil pgrep
 
 This command is alike `pgrep` command but it shows cgroups in addtion to PIDs.
 
-###Example output
+### Example output
 
     $ cgutil pgrep ssh
     /: 15072
@@ -76,11 +76,11 @@ This command is alike `pgrep` command but it shows cgroups in addtion to PIDs.
     /: 15157 /bin/python /bin/cgutil pgrep ssh -l -f
     /system/sshd.service: 630 /usr/sbin/sshd -D
 
-##cgutil stats
+## cgutil stats
 
 This command shows you states of cgroups.
 
-###Example output
+### Example output
 
     $ cgutil stats
     <root>
@@ -102,11 +102,11 @@ This command shows you states of cgroups.
     system/cups.service
             stat={'throttled_time': 0L, 'nr_periods': 0L, 'nr_throttled': 0L}
 
-##cgutil top
+## cgutil top
 
 This command is alike `top` command but it shows activities in a unit of cgroups.
 
-###Example output
+### Example output
 
     $ cgutil top -i -n 2 -b
     18.1 msec to collect statistics
@@ -120,11 +120,11 @@ This command is alike `top` command but it shows activities in a unit of cgroups
       0.0%   0.0%    0.0 /s   0.0 /s   -64.0k    0.0     0.0     0 sys_essential
       0.0%   0.0%    0.0 /s   0.0 /s   108.0k   32.0k    0.0    97 usr_1000/default
 
-##cgutil tree
+## cgutil tree
 
 This command shows you tree structure of cgroups.
 
-###Example outputs
+### Example outputs
     $ cgutil tree -o blkio
     <root>
        `system
@@ -143,11 +143,11 @@ This command shows you tree structure of cgroups.
            +udev.service
            `systemd-journald.service
 
-#Supported Linux Version
+# Supported Linux Version
 
 4.6.y
 
-##Supported subsystems
+## Supported subsystems
 
 - blkio (and its debug feature)
 - cpuset
@@ -160,12 +160,12 @@ This command shows you tree structure of cgroups.
 - net\_prio
 - pids
 
-#Supported Python
+# Supported Python
 
 - python2: 2.6 and above
 - python3: 3.4 and above
   - 3.0 to 3.3 may work but not tested
 
-#License
+# License
 
 The tools are distributed under GPLv2. See COPYING for more detail.
