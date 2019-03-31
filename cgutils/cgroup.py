@@ -305,6 +305,36 @@ class PidsEventsStat(dict):
         return ret
 
 
+class RdmaStat(dict):
+    __RE = '^(?P<name>\w+)\s+hca_handle=(?P<hca_handle>\d+)\s+hca_object=(?P<hca_object>(\d+|max))'
+    _RE = re.compile(__RE)
+
+    @staticmethod
+    def parse(content):
+        """ Parse rdma.curren and rdma.max
+
+        Example contents:
+          mlx4_0 hca_handle=2 hca_object=2000
+          ocrdma1 hca_handle=3 hca_object=max
+
+        >>> RdmaStat.parse("mlx4_0 hca_handle=2 hca_object=2000\\nocrdma1 hca_handle=3 hca_object=max")
+        {'mlx4_0': {'hca_handle': 2, 'hca_object': 2000}, 'ocrdma1': {'hca_handle': 3, 'hca_object': 'max'}}
+        """
+        ret = {}
+        lines = content.split('\n')
+        for line in lines:
+            m = RdmaStat._RE.match(line)
+            if m is None:
+                continue
+            name = m.group('name')
+            hca_handle = long(m.group('hca_handle'))
+            hca_object = m.group('hca_object')
+            if hca_object != "max":
+                hca_object = long(hca_object)
+            ret[name] = {"hca_handle": hca_handle, "hca_object": hca_object}
+        return ret
+
+
 #
 # The base class of subsystems
 #
@@ -534,6 +564,16 @@ class SubsystemPids(Subsystem):
     }
 
 
+class SubsystemRdma(Subsystem):
+    NAME = 'rdma'
+    STATS = {
+        'current': RdmaStat,
+    }
+    CONFIGS = {
+        'max': RdmaStat,
+    }
+
+
 class SubsystemName(Subsystem):
     NAME = 'name'
 
@@ -554,6 +594,7 @@ _subsystem_name2class = {
     'net_prio': SubsystemNetPrio,
     'hugetlb': SubsystemHugetlb,
     'pids': SubsystemPids,
+    'rdma': SubsystemRdma,
 }
 
 
@@ -613,6 +654,7 @@ class CGroup:
         SlabinfoStat: SlabinfoStat.parse,
         CpuacctUsageAllStat: CpuacctUsageAllStat.parse,
         PidsEventsStat: PidsEventsStat.parse,
+        RdmaStat: RdmaStat.parse,
     }
 
     def _calc_depth(self, path):
