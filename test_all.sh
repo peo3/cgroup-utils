@@ -97,6 +97,9 @@ for cmd in configs event pgrep stats top tree; do
     test_run bin/cgutil $cmd --help
 done
 
+echo "## Run doctest of cgroup.py"
+$PYTHON -mdoctest cgutils/cgroup.py
+
 echo "## Checking unsupported files of subsystems"
 for subsys in $enabled_cgroups; do
     test_support bin/check_support -o $subsys
