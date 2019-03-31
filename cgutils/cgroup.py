@@ -24,7 +24,7 @@ import errno
 
 from cgutils import host
 from cgutils import process
-from . import fileops
+from cgutils import fileops
 
 
 if sys.version_info.major == 3:
