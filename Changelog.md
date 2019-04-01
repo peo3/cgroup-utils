@@ -1,8 +1,9 @@
 # Changelog
 
 ## 0.7
-- Support PID subsystem
-- Support newer control files
+
+- Support PID and RDMA subsystems
+- Support new control files
 - Mark python2 deprecated
 
 ## 0.6
