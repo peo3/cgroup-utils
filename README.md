@@ -159,6 +159,7 @@ This command shows you tree structure of cgroups.
 - net\_cls
 - net\_prio
 - pids
+- rdma
 
 # Supported Python
 
