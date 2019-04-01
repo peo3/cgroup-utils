@@ -39,6 +39,10 @@ def main():
     if args.debug:
         print(args)
 
+    if args.subcmd_name is None:
+        parser.print_help()
+        sys.exit(1)
+
     mod = __import__('cgutils.commands' + '.' + args.subcmd_name, fromlist=[args.subcmd_name,])
     cmd = mod.Command()
     cmd.run()
