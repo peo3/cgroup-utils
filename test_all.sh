@@ -12,6 +12,10 @@ while getopts 23 OPT; do
     esac
 done
 
+results_ok=0
+results_ng=0
+results_un=0	# Unknown
+
 enabled_cgroups=
 while read name _ _ enabled; do
     if [ $enabled = 1 ]; then
@@ -36,12 +40,15 @@ test_run()
         grep -q "EnvironmentError: Not enabled in the system" $ERRFILE
         if [ $? = 0 ]; then
             echo "[??] $cmd"
+            results_un=$((results_un + 1))
         else
             echo "[NG] $cmd"
+            results_ng=$((results_ng + 1))
             cat $ERRFILE
         fi
     else
         echo "[ok] $cmd"
+        results_ok=$((results_ok + 1))
     fi
 }
 
@@ -54,8 +61,10 @@ test_run_event()
     if [ $ret = 2 ]; then
         # Timed out
         echo "[ok] $cmd"
+        results_ok=$((results_ok + 1))
     else
         echo "[NG] $cmd"
+        results_ng=$((results_ng + 1))
         cat $ERRFILE
     fi
 }
@@ -68,9 +77,11 @@ test_support()
     ret=$?
     if [ $ret != 0 ]; then
         echo "[NG] $cmd"
+        results_ng=$((results_ng + 1))
         cat $ERRFILE
     else
         echo "[ok] $cmd"
+        results_ok=$((results_ok + 1))
     fi
 }
 
@@ -104,3 +115,12 @@ echo "## Checking unsupported files of subsystems"
 for subsys in $enabled_cgroups; do
     test_support bin/check_support -o $subsys
 done
+
+echo "$results_ok tests passed, $results_ng tests failed, $results_un tests unknown"
+
+if [ $results_ng -gt 0 ]; then
+    status=1
+else
+    status=0
+fi
+exit $status
