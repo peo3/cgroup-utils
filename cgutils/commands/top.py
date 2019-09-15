@@ -38,7 +38,7 @@ class CGTopStats:
     SUBSYSTEMS = ['cpuacct', 'blkio', 'memory']
     FILTERS = {
         'cpuacct': ['stat'],
-        'blkio':   ['io_service_bytes'],
+        'blkio':   ['throttle.io_service_bytes'],
         'memory':  ['usage_in_bytes', 'memsw.usage_in_bytes', 'stat'],
     }
 
@@ -159,7 +159,7 @@ class CGTopStats:
 
     def __conv_blkio_stats(stats):
         n_reads = n_writes = long(0)
-        for k, v in stats['io_service_bytes'].items():
+        for k, v in stats['throttle.io_service_bytes'].items():
             if k == 'Total':
                 continue
             n_reads += v['Read']
