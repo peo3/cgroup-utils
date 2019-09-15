@@ -542,15 +542,19 @@ class SubsystemHugetlb(Subsystem):
     MAX_ULONGLONG = 2 ** 63 - 1
     # FIXME: this is x86 specific and we have to treat
     # different size of HugeTLB on other architectures.
-    __SIZE = '2MB'
-    STATS = {
-        __SIZE + '.failcnt': long,
-        __SIZE + '.max_usage_in_bytes': long,
-        __SIZE + '.usage_in_bytes': long,
-    }
-    CONFIGS = {
-        __SIZE + '.limit_in_bytes': MAX_ULONGLONG,
-    }
+    __stats = {}
+    __configs = {}
+    for __size in ('2MB', '1GB'):
+        __stats.update({
+            __size + '.failcnt': long,
+            __size + '.max_usage_in_bytes': long,
+            __size + '.usage_in_bytes': long,
+        })
+        __configs.update({
+            __size + '.limit_in_bytes': MAX_ULONGLONG,
+        })
+    STATS = __stats
+    CONFIGS = __configs
 
 
 class SubsystemPids(Subsystem):
