@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8
+
+- Tweak cgutil top for recent environments
+- Use GitHub Actions as CI
+
 ## 0.7
 
 - Support PID and RDMA subsystems
