@@ -97,7 +97,7 @@ done
 
 test_run bin/cgutil top -b -n 1
 
-root=$(awk '/^cgroup.*memory/ {print $2;}' /proc/mounts)
+root=$(awk '/^(cgroup.*)?memory/ {print $2;}' /proc/mounts)
 path=$root/memory.usage_in_bytes
 test_run_event bin/cgutil event -t 0.1 $path +1M
 path=$root/memory.oom_control
